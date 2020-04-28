@@ -1,2 +1,4 @@
+github.com/BurntSushi/xgb v0.0.0-20200324125942-20f126ea2843 h1:3iF31c7rp7nGZVDv7YQ+VxOgpipVfPKotLXykjZmwM8=
+github.com/BurntSushi/xgb v0.0.0-20200324125942-20f126ea2843/go.mod h1:IVnqGOEym/WlBOVXweHU+Q+/VP0lqqI8lqeDx9IjBqo=
 github.com/taylorza/w32 v0.0.0-20200420232457-b1dd1e254b07 h1:ewGaLvXXmH+pFRRYJoMOwEi3fPFpeHSQAjdu5nF3RHE=
 github.com/taylorza/w32 v0.0.0-20200420232457-b1dd1e254b07/go.mod h1:69YN72RH6i38OdaKix0/q5pzjOgPa0PJxs6HMm11GBU=

@@ -1,5 +1,3 @@
-// +build windows
-
 package gfx
 
 import (
@@ -20,7 +18,7 @@ var (
 type Application interface {
 	Load()
 	Update(d float64)
-	UnLoad()
+	Unload()
 }
 
 type Font struct {
@@ -261,7 +259,7 @@ func run(app Application) {
 			frameCount = 0
 		}
 	}
-	app.UnLoad()
+	app.Unload()
 	done <- true
 }
 
