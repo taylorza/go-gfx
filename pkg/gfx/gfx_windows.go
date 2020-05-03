@@ -54,7 +54,8 @@ func (e *windowsDriver) Clear(c Color) {
 	// [1,1] copy to position 2 -> [1,1,1,1]
 	// [1,1,1,1] copy to position 4 [1,1,1,1,1,1,1,1] ...
 	// [1,1,1,1,1,1,1,1] copy to position 8 [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1] ...
-	*(*Color)(unsafe.Pointer(&e.backBuffer[0])) = c
+	//*(*Color)(unsafe.Pointer(&e.backBuffer[0])) = c
+	e.backBuffer[0] = c
 	for i := 1; i < e.width*e.height; i *= 2 {
 		copy(e.backBuffer[i:], e.backBuffer[0:i])
 	}
