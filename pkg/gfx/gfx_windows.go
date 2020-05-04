@@ -40,7 +40,7 @@ type windowsDriver struct {
 func (e *windowsDriver) Init() error {
 	// Windows keymap is a 1-1 mapping scancode - key code
 	for i := range iomgr.keymap {
-		iomgr.keymap[i] = Key(i)
+		iomgr.setKeyMapping(byte(i), Key(i))
 	}
 
 	return nil
@@ -53,7 +53,6 @@ func (e *windowsDriver) Clear(c Color) {
 	// [1,1] copy to position 2 -> [1,1,1,1]
 	// [1,1,1,1] copy to position 4 [1,1,1,1,1,1,1,1] ...
 	// [1,1,1,1,1,1,1,1] copy to position 8 [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1] ...
-	//*(*Color)(unsafe.Pointer(&e.backBuffer[0])) = c
 	e.backBuffer[0] = c
 	for i := 1; i < e.width*e.height; i *= 2 {
 		copy(e.backBuffer[i:], e.backBuffer[0:i])
@@ -368,24 +367,23 @@ func (e *windowsDriver) wndProc(hwnd w32.HWND, msg uint32, wParam uintptr, lPara
 		e.scaleY = float64((l>>16)&0xffff) / float64(e.height)
 	case w32.WM_MOUSEMOVE:
 		l := int(lParam)
-		iomgr.mouseX = float64(l & 0xffff)
-		iomgr.mouseY = float64((l >> 16) & 0xffff)
+		iomgr.updateMouse(l&0xffff, (l>>16)&0xffff)
 	case w32.WM_LBUTTONDOWN:
-		iomgr.keysPhysical[iomgr.keymap[1]] = true
+		iomgr.setKeyPressed(1, true)
 	case w32.WM_LBUTTONUP:
-		iomgr.keysPhysical[iomgr.keymap[1]] = false
+		iomgr.setKeyPressed(1, false)
 	case w32.WM_RBUTTONDOWN:
-		iomgr.keysPhysical[iomgr.keymap[2]] = true
+		iomgr.setKeyPressed(2, true)
 	case w32.WM_RBUTTONUP:
-		iomgr.keysPhysical[iomgr.keymap[2]] = false
+		iomgr.setKeyPressed(2, false)
 	case w32.WM_MBUTTONDOWN:
-		iomgr.keysPhysical[iomgr.keymap[3]] = true
+		iomgr.setKeyPressed(3, true)
 	case w32.WM_MBUTTONUP:
-		iomgr.keysPhysical[iomgr.keymap[3]] = false
+		iomgr.setKeyPressed(3, false)
 	case w32.WM_KEYDOWN:
-		iomgr.keysPhysical[iomgr.keymap[byte(wParam)]] = true
+		iomgr.setKeyPressed(byte(wParam), true)
 	case w32.WM_KEYUP:
-		iomgr.keysPhysical[iomgr.keymap[byte(wParam)]] = false
+		iomgr.setKeyPressed(byte(wParam), false)
 
 	case w32.WM_USER + 0x100:
 		hdc := w32.GetDC(hwnd)

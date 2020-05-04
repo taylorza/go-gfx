@@ -38,6 +38,35 @@ type ioManager struct {
 	mouseY       float64
 }
 
+func (io *ioManager) setKeyMapping(scancode byte, key Key) {
+	io.keymap[scancode] = key
+}
+
+func (io *ioManager) setKeyPressed(scanCode byte, state bool) {
+	io.keysPhysical[io.keymap[scanCode]] = state
+}
+
+func (io *ioManager) updateMouse(x, y int) {
+	io.mouseX = float64(x) / scaleX
+	io.mouseY = float64(y) / scaleY
+}
+
+func (io *ioManager) keyJustPressed(key Key) bool {
+	if io.keysLogical[key].justPressed {
+		io.keysLogical[key].justPressed = false
+		return true
+	}
+	return false
+}
+
+func (io *ioManager) keyPressed(key Key) bool {
+	return io.keysLogical[key].pressed
+}
+
+func (io *ioManager) mouseXY() (float64, float64) {
+	return io.mouseX, io.mouseY
+}
+
 func (io *ioManager) update(delta float64) {
 	for i, pressed := range iomgr.keysPhysical {
 		if pressed {
@@ -50,20 +79,4 @@ func (io *ioManager) update(delta float64) {
 			io.keysLogical[i].justPressed = false
 		}
 	}
-}
-
-func (io *ioManager) KeyJustPressed(key Key) bool {
-	if io.keysLogical[key].justPressed {
-		io.keysLogical[key].justPressed = false
-		return true
-	}
-	return false
-}
-
-func (io *ioManager) KeyPressed(key Key) bool {
-	return io.keysLogical[key].pressed
-}
-
-func (io *ioManager) MouseXY() (float64, float64) {
-	return io.mouseX / scaleX, io.mouseY / scaleY
 }

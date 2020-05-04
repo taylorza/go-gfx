@@ -80,15 +80,15 @@ func SetPixel(x, y float64, c Color) {
 }
 
 func KeyPressed(key Key) bool {
-	return iomgr.KeyPressed(key)
+	return iomgr.keyPressed(key)
 }
 
 func KeyJustPressed(key Key) bool {
-	return iomgr.KeyJustPressed(key)
+	return iomgr.keyJustPressed(key)
 }
 
 func MouseXY() (float64, float64) {
-	return iomgr.MouseXY()
+	return iomgr.mouseXY()
 }
 
 type Color uint32
