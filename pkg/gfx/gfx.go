@@ -175,6 +175,7 @@ var (
 type Key byte
 
 const (
+	KeyUndefined   = 0x00
 	KeyMouseLeft   = 0x01
 	KeyMouseRight  = 0x02
 	KeyMouseMiddle = 0x03

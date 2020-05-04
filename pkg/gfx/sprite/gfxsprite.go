@@ -71,8 +71,8 @@ func (s *Sprite) PlayAnimation(name string, restart bool) {
 				if restart {
 					p.Restart()
 				}
-				p.Play()
 			}
+			p.Play()
 		}
 	}
 }
