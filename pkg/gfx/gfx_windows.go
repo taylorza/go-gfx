@@ -4,6 +4,7 @@ package gfx
 
 import (
 	"reflect"
+	"sync/atomic"
 	"syscall"
 	"unsafe"
 
@@ -25,11 +26,12 @@ type windowsDriver struct {
 	width           int
 	height          int
 	backBuffer      []Color
+	backBufferPtr   uintptr
 	dibPixels       []Color
 	scaleX          float64
 	scaleY          float64
 
-	rendering     bool
+	rendering     int32
 	renderPeriod  float64
 	renderElapsed float64
 
@@ -86,7 +88,7 @@ func (e *windowsDriver) FillRect(x, y, w, h int, c Color) {
 		h -= (y + h) - e.height
 	}
 
-	sptr := uintptr(unsafe.Pointer(&e.backBuffer[0])) + uintptr(y*e.width*4+x*4)
+	sptr := uintptr(e.backBufferPtr + uintptr(y*e.width*4+x*4))
 	for i := uintptr(0); i < uintptr(w); i++ {
 		*(*Color)(unsafe.Pointer(sptr + i*4)) = c
 	}
@@ -306,6 +308,7 @@ func (e *windowsDriver) CreateDevice() bool {
 	bytes := bmp.BmWidth * bmp.BmHeight
 
 	e.backBuffer = make([]Color, bytes, bytes)
+	e.backBufferPtr = uintptr(unsafe.Pointer(&e.backBuffer[0]))
 
 	sh := (*reflect.SliceHeader)(unsafe.Pointer(&e.dibPixels))
 	sh.Len = int(bytes)
@@ -344,15 +347,13 @@ func (e *windowsDriver) Update(delta float64) {
 
 func (e *windowsDriver) Render(delta float64) {
 	e.renderElapsed += delta
-	if e.rendering {
-		return
-	}
 
-	if e.renderElapsed >= e.renderPeriod && !e.rendering {
-		e.rendering = true
-		copy(e.dibPixels, e.backBuffer)
-		w32.PostMessage(e.hMainWnd, w32.WM_USER+0x100, 0, 0)
-		e.renderElapsed -= e.renderPeriod
+	if e.renderElapsed >= e.renderPeriod {
+		if atomic.CompareAndSwapInt32(&e.rendering, 0, 1) {
+			copy(e.dibPixels, e.backBuffer)
+			w32.PostMessage(e.hMainWnd, w32.WM_USER+0x100, 0, 0)
+			e.renderElapsed -= e.renderPeriod
+		}
 	}
 }
 
@@ -390,7 +391,7 @@ func (e *windowsDriver) wndProc(hwnd w32.HWND, msg uint32, wParam uintptr, lPara
 		rc := w32.GetClientRect(hwnd)
 		w32.StretchBlt(hdc, 0, 0, int(rc.Right-rc.Left), int(rc.Bottom-rc.Top), e.surfaceDC, 0, 0, e.width, e.height, w32.SRCCOPY)
 		w32.ReleaseDC(hwnd, hdc)
-		e.rendering = false
+		atomic.StoreInt32(&e.rendering, 0)
 	default:
 		return w32.DefWindowProc(hwnd, msg, wParam, lParam)
 	}

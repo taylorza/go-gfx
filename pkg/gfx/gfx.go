@@ -7,14 +7,11 @@ import (
 )
 
 var (
-	iomgr  *ioManager
 	width  float64
 	height float64
 	scaleX float64
 	scaleY float64
-)
 
-var (
 	fps int
 )
 

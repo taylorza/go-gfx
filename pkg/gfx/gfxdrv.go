@@ -1,6 +1,7 @@
 package gfx
 
 var (
+	iomgr   *ioManager
 	driver  platformDriver
 	running bool
 	done    = make(chan bool)
