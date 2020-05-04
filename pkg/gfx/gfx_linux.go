@@ -39,10 +39,10 @@ type xcbDriver struct {
 }
 
 func (e *xcbDriver) Init() error {
-	iomgr.keymap[0x6f] = KeyUp
-	iomgr.keymap[0x71] = KeyLeft
-	iomgr.keymap[0x72] = KeyRight
-	iomgr.keymap[0x74] = KeyDown
+	iomgr.setKeyMapping(0x6f, KeyUp)
+	iomgr.setKeyMapping(0x71, KeyLeft)
+	iomgr.setKeyMapping(0x72, KeyRight)
+	iomgr.setKeyMapping(0x74, KeyDown)
 	return nil
 }
 
@@ -341,32 +341,30 @@ func (e *xcbDriver) StartEventLoop() {
 					0, 0, 0, 0, uint16(e.width*e.sx), uint16(e.height*e.sy))
 				atomic.StoreInt32(&e.rendering, 0)
 			case xproto.MotionNotifyEvent:
-				iomgr.mouseX = float64(evt.EventX)
-				iomgr.mouseY = float64(evt.EventY)
+				iomgr.updateMouse(int(evt.EventX), int(evt.EventY))
 			case xproto.ButtonPressEvent:
-				fmt.Printf("MB Pressed: %0.2x\n", evt.Detail)
 				switch evt.Detail {
 				case 1:
-					iomgr.keysPhysical[KeyMouseLeft] = true
+					iomgr.setKeyPressed(KeyMouseLeft, true)
 				case 2:
-					iomgr.keysPhysical[KeyMouseMiddle] = true
+					iomgr.setKeyPressed(KeyMouseMiddle, true)
 				case 3:
-					iomgr.keysPhysical[KeyMouseRight] = true
+					iomgr.setKeyPressed(KeyMouseRight, true)
 				}
 			case xproto.ButtonReleaseEvent:
 				switch evt.Detail {
 				case 1:
-					iomgr.keysPhysical[KeyMouseLeft] = false
+					iomgr.setKeyPressed(KeyMouseLeft, false)
 				case 2:
-					iomgr.keysPhysical[KeyMouseMiddle] = false
+					iomgr.setKeyPressed(KeyMouseMiddle, false)
 				case 3:
-					iomgr.keysPhysical[KeyMouseRight] = false
+					iomgr.setKeyPressed(KeyMouseRight, false)
 				}
 			case xproto.KeyPressEvent:
 				fmt.Printf("Pressed: %0.2x\n", evt.Detail)
-				iomgr.keysPhysical[iomgr.keymap[int(evt.Detail)]] = true
+				iomgr.setMappedKeyPressed(byte(evt.Detail), true)
 			case xproto.KeyReleaseEvent:
-				iomgr.keysPhysical[iomgr.keymap[int(evt.Detail)]] = false
+				iomgr.setMappedKeyPressed(byte(evt.Detail), false)
 			default:
 				//fmt.Printf("Event: %v\n", evt)
 			}
