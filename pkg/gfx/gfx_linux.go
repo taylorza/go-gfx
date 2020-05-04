@@ -39,10 +39,20 @@ type xcbDriver struct {
 }
 
 func (e *xcbDriver) Init() error {
+	var err error
+	e.conn, err = xgb.NewConn()
+	if err != nil {
+		panic(err)
+	}
+
+	bigreq.Init(e.conn)
+	bigreq.Enable(e.conn)
+
 	iomgr.setKeyMapping(0x6f, KeyUp)
 	iomgr.setKeyMapping(0x71, KeyLeft)
 	iomgr.setKeyMapping(0x72, KeyRight)
 	iomgr.setKeyMapping(0x74, KeyDown)
+
 	return nil
 }
 
@@ -232,13 +242,6 @@ func (e *xcbDriver) VLine(x, y1, y2 int, c Color) {
 
 func (e *xcbDriver) CreateWindow(x, y, w, h, xscale, yscale int) bool {
 	var err error
-	e.conn, err = xgb.NewConn()
-	if err != nil {
-		panic(err)
-	}
-
-	bigreq.Init(e.conn)
-	bigreq.Enable(e.conn)
 
 	e.wid, err = xproto.NewWindowId(e.conn)
 	if err != nil {
