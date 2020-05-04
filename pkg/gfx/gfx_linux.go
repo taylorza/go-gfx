@@ -41,6 +41,7 @@ type xcbDriver struct {
 	sx           int
 	sy           int
 	backBuffer   []byte
+	backBufPtr   uintptr
 	renderBuffer []byte
 	scaleBuffer  []byte
 
@@ -69,18 +70,22 @@ func (e *xcbDriver) idx(x, y int) int {
 	return (y * e.width * 4) + (x * 4)
 }
 
+func (e *xcbDriver) idxPtr(x, y int) uintptr {
+	return uintptr(e.backBufPtr + uintptr((y*e.width*4)+(x*4)))
+}
+
 func (e *xcbDriver) SetPixel(x, y int, c Color) {
 	if x < 0 || x > e.width || y < 0 || y > e.height {
 		return
 	}
-	e.setPixelFast(e.idx(x, y), c)
+	e.setPixelFast(e.idxPtr(x, y), c)
 }
 
-func (e *xcbDriver) setPixelFast(offset int, c Color) {
-	e.backBuffer[offset+0] = byte(c.B())
-	e.backBuffer[offset+1] = byte(c.G())
-	e.backBuffer[offset+2] = byte(c.R())
-	e.backBuffer[offset+3] = 255
+func (e *xcbDriver) setPixelFast(offset uintptr, c Color) {
+	*(*byte)(unsafe.Pointer(offset + 0)) = byte(c.B())
+	*(*byte)(unsafe.Pointer(offset + 1)) = byte(c.G())
+	*(*byte)(unsafe.Pointer(offset + 2)) = byte(c.R())
+	*(*byte)(unsafe.Pointer(offset + 3)) = 255
 }
 
 func (e *xcbDriver) FillRect(x, y, w, h int, c Color) {
@@ -103,8 +108,9 @@ func (e *xcbDriver) FillRect(x, y, w, h int, c Color) {
 		h -= (y + h) - e.height
 	}
 
-	for xi := 0; xi < w; xi++ {
-		e.SetPixel(x+xi, y, c)
+	offset := e.idxPtr(x, y)
+	for i := 0; i < w; i++ {
+		e.setPixelFast(offset+uintptr(i*4), c)
 	}
 
 	for i := 1; i < h; i++ {
@@ -172,7 +178,7 @@ func (e *xcbDriver) DrawTexture(x, y, srcX, srcY, srcW, srcH int, t *Texture) {
 
 	transparent := t.pixels[0]
 	textureRowOffset := uintptr((srcY+y1)*t.W + (srcX + x1))
-	bufferRowOffset := e.idx(x, y)
+	bufferRowOffset := e.idxPtr(x, y)
 
 	tptr := uintptr(unsafe.Pointer(&t.pixels[0]))
 	for ty := y1; ty < y2; ty++ {
@@ -187,7 +193,7 @@ func (e *xcbDriver) DrawTexture(x, y, srcX, srcY, srcW, srcH int, t *Texture) {
 			j += 4
 		}
 		textureRowOffset += uintptr(t.W)
-		bufferRowOffset += e.width * 4
+		bufferRowOffset += uintptr(e.width * 4)
 	}
 }
 
@@ -205,7 +211,7 @@ func (e *xcbDriver) HLine(x1, x2, y int, c Color) {
 		return
 	}
 
-	offset := e.idx(x1, y)
+	offset := e.idxPtr(x1, y)
 	for i := uintptr(0); i <= uintptr(x2-x1); i++ {
 		e.setPixelFast(offset, c)
 		offset += 4
@@ -226,10 +232,10 @@ func (e *xcbDriver) VLine(x, y1, y2 int, c Color) {
 		return
 	}
 
-	offset := e.idx(x, y1)
+	offset := e.idxPtr(x, y1)
 	for i := uintptr(0); i <= uintptr(y2-y1); i++ {
 		e.setPixelFast(offset, c)
-		offset += e.width * 4
+		offset += uintptr(e.width * 4)
 	}
 }
 
@@ -289,6 +295,7 @@ func (e *xcbDriver) CreateDevice() bool {
 
 	bufSize := int(e.width * 4 * e.height)
 	e.backBuffer = make([]byte, bufSize, bufSize)
+	e.backBufPtr = uintptr(unsafe.Pointer(&e.backBuffer[0]))
 	e.renderBuffer = make([]byte, bufSize, bufSize)
 
 	bufSize = int((e.width * e.sx * 4) * (e.height * e.sy))
@@ -298,7 +305,7 @@ func (e *xcbDriver) CreateDevice() bool {
 }
 
 func (e *xcbDriver) SetWindowTitle(title string) {
-
+	xproto.ChangeProperty(e.conn, xproto.PropModeReplace, e.wid, xproto.AtomWmName, xproto.AtomString, 8, uint32(len(title)), []byte(title))
 }
 
 func (e *xcbDriver) Update(delta float64) {
