@@ -7,8 +7,11 @@ import (
 )
 
 var (
+	iomgr  *ioManager
 	width  float64
 	height float64
+	scaleX float64
+	scaleY float64
 )
 
 var (
@@ -30,6 +33,14 @@ type Font struct {
 func Init(title string, x, y, w, h, xscale, yscale int) bool {
 	runtime.LockOSThread()
 
+	width = float64(w)
+	height = float64(h)
+	scaleX = float64(xscale)
+	scaleY = float64(yscale)
+
+	iomgr = &ioManager{}
+	driver.Init()
+
 	if !driver.CreateWindow(x, y, w, h, xscale, yscale) {
 		return false
 	}
@@ -37,9 +48,6 @@ func Init(title string, x, y, w, h, xscale, yscale int) bool {
 	if !driver.CreateDevice() {
 		return false
 	}
-
-	width = float64(w)
-	height = float64(h)
 
 	driver.SetWindowTitle(title)
 
@@ -72,15 +80,15 @@ func SetPixel(x, y float64, c Color) {
 }
 
 func KeyPressed(key Key) bool {
-	return driver.KeyPressed(key)
+	return iomgr.KeyPressed(key)
 }
 
 func KeyJustPressed(key Key) bool {
-	return driver.KeyJustPressed(key)
+	return iomgr.KeyJustPressed(key)
 }
 
 func MouseXY() (float64, float64) {
-	return driver.MouseXY()
+	return iomgr.MouseXY()
 }
 
 type Color uint32
@@ -249,6 +257,7 @@ func run(app Application) {
 		lastFrame = startUpdate
 
 		driver.Update(elapsedTime)
+		iomgr.update(elapsedTime)
 		app.Update(elapsedTime)
 		driver.Render(elapsedTime)
 

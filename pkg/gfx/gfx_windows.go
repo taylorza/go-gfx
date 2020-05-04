@@ -18,11 +18,6 @@ func init() {
 	}
 }
 
-type keyState struct {
-	justPressed bool
-	pressed     bool
-}
-
 type windowsDriver struct {
 	windowClassName *uint16
 	hMainWnd        w32.HWND
@@ -34,17 +29,21 @@ type windowsDriver struct {
 	scaleX          float64
 	scaleY          float64
 
-	keysPhysical [255]bool
-	keysLogical  [255]keyState
-	mouseX       float64
-	mouseY       float64
-
 	rendering     bool
 	renderPeriod  float64
 	renderElapsed float64
 
 	dib    w32.HBITMAP
 	olddib w32.HGDIOBJ
+}
+
+func (e *windowsDriver) Init() error {
+	// Windows keymap is a 1-1 mapping scancode - key code
+	for i := range iomgr.keymap {
+		iomgr.keymap[i] = Key(i)
+	}
+
+	return nil
 }
 
 func (e *windowsDriver) Clear(c Color) {
@@ -341,33 +340,7 @@ func (e *windowsDriver) SetWindowTitle(title string) {
 }
 
 func (e *windowsDriver) Update(delta float64) {
-	for i, pressed := range e.keysPhysical {
-		if pressed {
-			if !e.keysLogical[i].pressed {
-				e.keysLogical[i].justPressed = true
-			}
-			e.keysLogical[i].pressed = true
-		} else {
-			e.keysLogical[i].pressed = false
-			e.keysLogical[i].justPressed = false
-		}
-	}
-}
 
-func (e *windowsDriver) KeyJustPressed(key Key) bool {
-	if e.keysLogical[key].justPressed {
-		e.keysLogical[key].justPressed = false
-		return true
-	}
-	return false
-}
-
-func (e *windowsDriver) KeyPressed(key Key) bool {
-	return e.keysLogical[key].pressed
-}
-
-func (e *windowsDriver) MouseXY() (float64, float64) {
-	return e.mouseX / e.scaleX, e.mouseY / e.scaleY
 }
 
 func (e *windowsDriver) Render(delta float64) {
@@ -395,24 +368,24 @@ func (e *windowsDriver) wndProc(hwnd w32.HWND, msg uint32, wParam uintptr, lPara
 		e.scaleY = float64((l>>16)&0xffff) / float64(e.height)
 	case w32.WM_MOUSEMOVE:
 		l := int(lParam)
-		e.mouseX = float64(l & 0xffff)
-		e.mouseY = float64((l >> 16) & 0xffff)
+		iomgr.mouseX = float64(l & 0xffff)
+		iomgr.mouseY = float64((l >> 16) & 0xffff)
 	case w32.WM_LBUTTONDOWN:
-		e.keysPhysical[1] = true
+		iomgr.keysPhysical[iomgr.keymap[1]] = true
 	case w32.WM_LBUTTONUP:
-		e.keysPhysical[1] = false
+		iomgr.keysPhysical[iomgr.keymap[1]] = false
 	case w32.WM_RBUTTONDOWN:
-		e.keysPhysical[2] = true
+		iomgr.keysPhysical[iomgr.keymap[2]] = true
 	case w32.WM_RBUTTONUP:
-		e.keysPhysical[2] = false
+		iomgr.keysPhysical[iomgr.keymap[2]] = false
 	case w32.WM_MBUTTONDOWN:
-		e.keysPhysical[3] = true
+		iomgr.keysPhysical[iomgr.keymap[3]] = true
 	case w32.WM_MBUTTONUP:
-		e.keysPhysical[3] = false
+		iomgr.keysPhysical[iomgr.keymap[3]] = false
 	case w32.WM_KEYDOWN:
-		e.keysPhysical[byte(wParam)] = true
+		iomgr.keysPhysical[iomgr.keymap[byte(wParam)]] = true
 	case w32.WM_KEYUP:
-		e.keysPhysical[byte(wParam)] = false
+		iomgr.keysPhysical[iomgr.keymap[byte(wParam)]] = false
 
 	case w32.WM_USER + 0x100:
 		hdc := w32.GetDC(hwnd)

@@ -12,22 +12,10 @@ import (
 	"github.com/BurntSushi/xgb/xproto"
 )
 
-var keymap [255]Key
-
 func init() {
 	driver = &xcbDriver{
 		renderPeriod: 1.0 / 60.0,
 	}
-
-	keymap[0x6f] = KeyUp
-	keymap[0x71] = KeyLeft
-	keymap[0x72] = KeyRight
-	keymap[0x74] = KeyDown
-}
-
-type keyState struct {
-	justPressed bool
-	pressed     bool
 }
 
 type xcbDriver struct {
@@ -45,14 +33,17 @@ type xcbDriver struct {
 	renderBuffer []byte
 	scaleBuffer  []byte
 
-	keysPhysical [255]bool
-	keysLogical  [255]keyState
-	mouseX       float64
-	mouseY       float64
-
 	renderElapsed float64
 	renderPeriod  float64
 	rendering     int32
+}
+
+func (e *xcbDriver) Init() error {
+	iomgr.keymap[0x6f] = KeyUp
+	iomgr.keymap[0x71] = KeyLeft
+	iomgr.keymap[0x72] = KeyRight
+	iomgr.keymap[0x74] = KeyDown
+	return nil
 }
 
 func (e *xcbDriver) Clear(c Color) {
@@ -309,33 +300,7 @@ func (e *xcbDriver) SetWindowTitle(title string) {
 }
 
 func (e *xcbDriver) Update(delta float64) {
-	for i, pressed := range e.keysPhysical {
-		if pressed {
-			if !e.keysLogical[i].pressed {
-				e.keysLogical[i].justPressed = true
-			}
-			e.keysLogical[i].pressed = true
-		} else {
-			e.keysLogical[i].pressed = false
-			e.keysLogical[i].justPressed = false
-		}
-	}
-}
 
-func (e *xcbDriver) KeyJustPressed(key Key) bool {
-	if e.keysLogical[key].justPressed {
-		e.keysLogical[key].justPressed = false
-		return true
-	}
-	return false
-}
-
-func (e *xcbDriver) KeyPressed(key Key) bool {
-	return e.keysLogical[key].pressed
-}
-
-func (e *xcbDriver) MouseXY() (float64, float64) {
-	return e.mouseX / float64(e.sx), e.mouseY / float64(e.sy)
 }
 
 func (e *xcbDriver) Render(delta float64) {
@@ -376,32 +341,32 @@ func (e *xcbDriver) StartEventLoop() {
 					0, 0, 0, 0, uint16(e.width*e.sx), uint16(e.height*e.sy))
 				atomic.StoreInt32(&e.rendering, 0)
 			case xproto.MotionNotifyEvent:
-				e.mouseX = float64(evt.EventX)
-				e.mouseY = float64(evt.EventY)
+				iomgr.mouseX = float64(evt.EventX)
+				iomgr.mouseY = float64(evt.EventY)
 			case xproto.ButtonPressEvent:
 				fmt.Printf("MB Pressed: %0.2x\n", evt.Detail)
 				switch evt.Detail {
 				case 1:
-					e.keysPhysical[KeyMouseLeft] = true
+					iomgr.keysPhysical[KeyMouseLeft] = true
 				case 2:
-					e.keysPhysical[KeyMouseMiddle] = true
+					iomgr.keysPhysical[KeyMouseMiddle] = true
 				case 3:
-					e.keysPhysical[KeyMouseRight] = true
+					iomgr.keysPhysical[KeyMouseRight] = true
 				}
 			case xproto.ButtonReleaseEvent:
 				switch evt.Detail {
 				case 1:
-					e.keysPhysical[KeyMouseLeft] = false
+					iomgr.keysPhysical[KeyMouseLeft] = false
 				case 2:
-					e.keysPhysical[KeyMouseMiddle] = false
+					iomgr.keysPhysical[KeyMouseMiddle] = false
 				case 3:
-					e.keysPhysical[KeyMouseRight] = false
+					iomgr.keysPhysical[KeyMouseRight] = false
 				}
 			case xproto.KeyPressEvent:
 				fmt.Printf("Pressed: %0.2x\n", evt.Detail)
-				e.keysPhysical[keymap[int(evt.Detail)]] = true
+				iomgr.keysPhysical[iomgr.keymap[int(evt.Detail)]] = true
 			case xproto.KeyReleaseEvent:
-				e.keysPhysical[keymap[int(evt.Detail)]] = false
+				iomgr.keysPhysical[iomgr.keymap[int(evt.Detail)]] = false
 			default:
 				//fmt.Printf("Event: %v\n", evt)
 			}
