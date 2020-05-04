@@ -42,7 +42,11 @@ func (io *ioManager) setKeyMapping(scancode byte, key Key) {
 	io.keymap[scancode] = key
 }
 
-func (io *ioManager) setKeyPressed(scanCode byte, state bool) {
+func (io *ioManager) setKeyPressed(key Key, state bool) {
+	io.keysPhysical[key] = state
+}
+
+func (io *ioManager) setMappedKeyPressed(scanCode byte, state bool) {
 	io.keysPhysical[io.keymap[scanCode]] = state
 }
 

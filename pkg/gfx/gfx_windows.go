@@ -369,21 +369,21 @@ func (e *windowsDriver) wndProc(hwnd w32.HWND, msg uint32, wParam uintptr, lPara
 		l := int(lParam)
 		iomgr.updateMouse(l&0xffff, (l>>16)&0xffff)
 	case w32.WM_LBUTTONDOWN:
-		iomgr.setKeyPressed(1, true)
+		iomgr.setKeyPressed(KeyMouseLeft, true)
 	case w32.WM_LBUTTONUP:
-		iomgr.setKeyPressed(1, false)
+		iomgr.setKeyPressed(KeyMouseLeft, false)
 	case w32.WM_RBUTTONDOWN:
-		iomgr.setKeyPressed(2, true)
+		iomgr.setKeyPressed(KeyMouseRight, true)
 	case w32.WM_RBUTTONUP:
-		iomgr.setKeyPressed(2, false)
+		iomgr.setKeyPressed(KeyMouseRight, false)
 	case w32.WM_MBUTTONDOWN:
-		iomgr.setKeyPressed(3, true)
+		iomgr.setKeyPressed(KeyMouseMiddle, true)
 	case w32.WM_MBUTTONUP:
-		iomgr.setKeyPressed(3, false)
+		iomgr.setKeyPressed(KeyMouseMiddle, false)
 	case w32.WM_KEYDOWN:
-		iomgr.setKeyPressed(byte(wParam), true)
+		iomgr.setMappedKeyPressed(byte(wParam), true)
 	case w32.WM_KEYUP:
-		iomgr.setKeyPressed(byte(wParam), false)
+		iomgr.setMappedKeyPressed(byte(wParam), false)
 
 	case w32.WM_USER + 0x100:
 		hdc := w32.GetDC(hwnd)
