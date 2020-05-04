@@ -261,7 +261,7 @@ func (e *xcbDriver) DrawTexture(x, y, srcX, srcY, srcW, srcH int, t *Texture, ti
 				if tint != Black {
 					e.setPixelFast(j, c.Add(tint))
 				} else {
-					e.setPixelFast(j, c
+					e.setPixelFast(j, c)
 				}
 			}
 			i++
