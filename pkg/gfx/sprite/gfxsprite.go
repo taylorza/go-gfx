@@ -11,6 +11,7 @@ type Sprite struct {
 	t               *gfx.Texture
 	animations      map[string]*animation.Animator
 	currentAnimator *animation.Animator
+	tint            gfx.Color
 }
 
 type Option func(s *Sprite)
@@ -29,6 +30,16 @@ func New(t *gfx.Texture, opts ...Option) *Sprite {
 	}
 
 	return s
+}
+
+func (s *Sprite) Tint(c gfx.Color) {
+	s.tint = c
+}
+
+func Tint(c gfx.Color) Option {
+	return func(s *Sprite) {
+		s.tint = c
+	}
 }
 
 func Animation(name string, a *animation.Animation) Option {
@@ -53,11 +64,11 @@ func Origin(x, y int) Option {
 
 func (s *Sprite) Update(delta float64) {
 	if len(s.animations) == 0 {
-		gfx.DrawTexture(s.X-s.ox, s.Y-s.oy, s.t)
+		gfx.DrawTexture(s.X-s.ox, s.Y-s.oy, s.t, s.tint)
 		return
 	} else if s.currentAnimator != nil {
 		x, y, w, h := s.currentAnimator.CurrentFrame()
-		gfx.DrawTextureRect(s.X-s.ox, s.Y-s.oy, x, y, w, h, s.t)
+		gfx.DrawTextureRect(s.X-s.ox, s.Y-s.oy, x, y, w, h, s.t, s.tint)
 		s.currentAnimator.Update(delta)
 	}
 }

@@ -97,7 +97,7 @@ func (e *windowsDriver) FillRect(x, y, w, h int, c Color) {
 	}
 }
 
-func (e *windowsDriver) DrawTexture(x, y int, srcX, srcY, srcW, srcH int, t *Texture) {
+func (e *windowsDriver) DrawTexture(x, y int, srcX, srcY, srcW, srcH int, t *Texture, tint Color) {
 	if x > e.width || y > e.height || x+srcW < 0 || y+srcH < 0 || srcX >= t.W || srcY >= t.H {
 		return
 	}
@@ -166,9 +166,13 @@ func (e *windowsDriver) DrawTexture(x, y int, srcX, srcY, srcW, srcH int, t *Tex
 		i := textureRowOffset
 		j := bufferRowOffset
 		for tx := x1; tx < x2; tx++ {
-			c := *(*uint32)(unsafe.Pointer(tptr + i*4))
-			if c != uint32(transparent) {
-				*(*uint32)(unsafe.Pointer(sptr + j*4)) = c
+			c := Color(*(*uint32)(unsafe.Pointer(tptr + i*4)))
+			if c != transparent {
+				if tint != Black {
+					*(*uint32)(unsafe.Pointer(sptr + j*4)) = uint32(c.Add(tint))
+				} else {
+					*(*uint32)(unsafe.Pointer(sptr + j*4)) = uint32(c)
+				}
 			}
 			i++
 			j++

@@ -43,18 +43,18 @@ func LoadTexture(filename string) (*Texture, error) {
 	}, nil
 }
 
-func DrawTexture(x, y float64, t *Texture) {
+func DrawTexture(x, y float64, t *Texture, tint Color) {
 	if t == nil {
 		panic("texture cannot be nil")
 	}
-	driver.DrawTexture(int(x), int(y), 0, 0, t.W, t.H, t)
+	driver.DrawTexture(int(x), int(y), 0, 0, t.W, t.H, t, tint)
 }
 
-func DrawTextureRect(x, y float64, srcX, srcY, srcW, srcH int, t *Texture) {
+func DrawTextureRect(x, y float64, srcX, srcY, srcW, srcH int, t *Texture, tint Color) {
 	if t == nil {
 		panic("texture cannot be nil")
 	}
-	driver.DrawTexture(int(x), int(y), srcX, srcY, srcW, srcH, t)
+	driver.DrawTexture(int(x), int(y), srcX, srcY, srcW, srcH, t, tint)
 }
 
 func fmin4(a, b, c, d float64) float64 {
