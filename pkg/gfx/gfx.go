@@ -15,18 +15,26 @@ var (
 	fps int
 )
 
+// Application defines the interface that must be implemented by an application using the graphics interface.
 type Application interface {
+	// Load called before the application loop starts. Can be used to preload assets like textures etc.
 	Load()
+
+	// Update is called for each update frame of the application. The d argument is the time delta in seconds since the last call to update.
 	Update(d float64)
+
+	// Unload is called when the application shutsdown. Can be used to cleanup/flush any open resources.
 	Unload()
 }
 
+// Font represents a raster font that can be used to render text
 type Font struct {
 	W, H                int
 	FirstChar, LastChar byte
 	data                []byte
 }
 
+// Init initialized the graphics system, creates the platform specific window and related graphics devices.
 func Init(title string, x, y, w, h, xscale, yscale int) bool {
 	runtime.LockOSThread()
 
@@ -51,65 +59,88 @@ func Init(title string, x, y, w, h, xscale, yscale int) bool {
 	return true
 }
 
+// Run starts the application running and executes the platform specific event loop. This function blocks.
 func Run(app Application) {
 	go run(app)
 	driver.StartEventLoop()
 }
 
+// Width returns the pixel width of graphics surface. This is an unscaled value.
 func Width() float64 {
 	return width
 }
 
+// Height returns the pixel height of the graphics surface. This is an unscaled value.
 func Height() float64 {
 	return height
 }
 
+// Fps returns the number of update frames executed in the last second
 func Fps() int {
 	return fps
 }
 
+// Clear clears the graphics surface using the specified color
 func Clear(c Color) {
 	driver.Clear(c)
 }
 
+// SetPixel draws a pixel at the specified coordinates using the passed color
 func SetPixel(x, y float64, c Color) {
 	driver.SetPixel(int(x), int(y), c)
 }
 
+// KeyPressed returns true if the passed key is currently pressed. KeyPressed can also be used to check the state of the mouse buttons.
 func KeyPressed(key Key) bool {
 	return iomgr.keyPressed(key)
 }
 
+// KeyJustPressed returns true if the key was just pressed. This will not continue to return true if the key is held down.
+// KeyJustPressed can be used to check the state of the mouse buttons.
+// This can be used for one shot key presses, that require the key to be released and repressed for each interaction.
 func KeyJustPressed(key Key) bool {
 	return iomgr.keyJustPressed(key)
 }
 
+// MouseXY returns the coordinates of the mouse
 func MouseXY() (float64, float64) {
 	return iomgr.mouseXY()
 }
 
+// Color represents a RGB color
 type Color uint32
 
+// Rgb creates a new color using the specified RGB color components. Each component is a value between 0 and 255.
 func Rgb(r, g, b int) Color {
-	return Color((r << 16) | (g << 8) | b)
+	return Color((0xff << 24) | (r << 16) | (g << 8) | b)
 }
 
-func (c Color) A() int {
-	return (int(c) >> 24) & 0xff
+// Rgba creates a new color using the specified RGBA color components. Each component is a value between 0 and 255.
+func Rgba(r, g, b, a int) Color {
+	return Color((a << 24) | (r << 16) | (g << 8) | b)
 }
 
+// R returns the red component of the color
 func (c Color) R() int {
 	return (int(c) >> 16) & 0xff
 }
 
+// G returns the green component of the color
 func (c Color) G() int {
 	return (int(c) >> 8) & 0xff
 }
 
+// B returns the blue component of the color
 func (c Color) B() int {
 	return int(c) & 0xff
 }
 
+// A returns the alpha component of the color
+func (c Color) A() int {
+	return (int(c) >> 24) & 0xff
+}
+
+// RandomColor returns a random color
 func RandomColor() Color {
 	return Rgb(rand.Intn(255), rand.Intn(255), rand.Intn(255))
 }
@@ -124,14 +155,27 @@ func clamp(v, min, max int) int {
 	return v
 }
 
+// Add combines two colors and returns the resulting color
 func (c Color) Add(o Color) Color {
 	return Rgb(clamp(c.R()+o.R(), 0, 255),
 		clamp(c.G()+o.G(), 0, 255),
 		clamp(c.B()+o.B(), 0, 255))
 }
 
+// Blend blends the color with a second color
+func (c Color) Blend(o Color) Color {
+	a := c.A() + 1
+	ia := 256 - c.A()
+	r := (a*c.R() + ia*o.R()) >> 8
+	g := (a*c.G() + ia*o.G()) >> 8
+	b := (a*c.B() + ia*o.B()) >> 8
+	na := (a*c.A() + ia*o.A()) >> 8
+	return Rgba(r, g, b, na)
+}
+
+// Predefined colors
 var (
-	Transparent     = Color(255 << 24)
+	Transparent     = Rgba(0, 0, 0, 0)
 	Black           = Rgb(0, 0, 0)
 	BrightBlue      = Rgb(0, 0, 255)
 	BrightGreen     = Rgb(0, 255, 0)

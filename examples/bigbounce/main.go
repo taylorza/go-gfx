@@ -8,7 +8,9 @@ import (
 	"github.com/taylorza/go-gfx/pkg/gfx"
 )
 
-const maxBalls = 10
+const (
+	newBalls = 10
+)
 
 type ball struct {
 	x, y, r, dx, dy float64
@@ -49,7 +51,7 @@ type myapp struct {
 }
 
 func (app *myapp) Load() {
-	for i := 0; i < maxBalls; i++ {
+	for i := 0; i < newBalls; i++ {
 		app.balls = append(app.balls, newBall())
 	}
 }
@@ -62,7 +64,9 @@ func (app *myapp) Update(delta float64) {
 	}
 
 	if gfx.KeyJustPressed(gfx.KeySpace) {
-		app.balls = append(app.balls, newBall())
+		for i := 0; i < newBalls; i++ {
+			app.balls = append(app.balls, newBall())
+		}
 	}
 
 	gfx.DrawString(gfx.Font8x8, 8, 8, "Press SPACE to add balls", gfx.Black, gfx.Grey)

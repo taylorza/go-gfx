@@ -1,5 +1,6 @@
 package gfx
 
+// Font6x8 6 x 8 raster font
 var Font6x8 = &Font{
 	W:         6,
 	H:         8,

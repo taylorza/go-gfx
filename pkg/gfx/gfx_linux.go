@@ -189,7 +189,7 @@ func (e *xcbDriver) FillRect(x, y, w, h int, c Color) {
 	}
 }
 
-func (e *xcbDriver) DrawTexture(x, y, srcX, srcY, srcW, srcH int, t *Texture, tint Color) {
+func (e *xcbDriver) DrawTexture(x, y, srcX, srcY, srcW, srcH int, t *Texture) {
 	if x > e.width || y > e.height || x+srcW < 0 || y+srcH < 0 || srcX >= t.W || srcY >= t.H {
 		return
 	}
@@ -258,11 +258,7 @@ func (e *xcbDriver) DrawTexture(x, y, srcX, srcY, srcW, srcH int, t *Texture, ti
 		for tx := x1; tx < x2; tx++ {
 			c := Color(*(*uint32)(unsafe.Pointer(tptr + i*4)))
 			if c != transparent {
-				if tint != Black {
-					e.setPixelFast(j, c.Add(tint))
-				} else {
-					e.setPixelFast(j, c)
-				}
+				e.setPixelFast(j, c)
 			}
 			i++
 			j += 4

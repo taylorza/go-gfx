@@ -2,18 +2,20 @@ package gfx
 
 import (
 	"image"
-	_ "image/gif"
-	_ "image/jpeg"
-	_ "image/png"
+	_ "image/gif"  // imported to register the gif image decoder used to load textures from image files of this type
+	_ "image/jpeg" // imported to register the jpeg image decoder used to load textures from image files of this type
+	_ "image/png"  // imported to register the png image decoder used to load textures from image files of this type
 	"math"
 	"os"
 )
 
+// Texture in memory representation of a texture
 type Texture struct {
 	W, H   int
 	pixels []Color
 }
 
+// LoadTexture loads an image from a file and creates a texture from it
 func LoadTexture(filename string) (*Texture, error) {
 	reader, err := os.Open(filename)
 	if err != nil {
@@ -30,8 +32,8 @@ func LoadTexture(filename string) (*Texture, error) {
 	i := 0
 	for y := b.Min.Y; y < b.Max.Y; y++ {
 		for x := b.Min.X; x < b.Max.X; x++ {
-			r, g, b, _ := m.At(x, y).RGBA()
-			c := Rgb(int((float64(r)/65535.)*255), int((float64(g)/65535.)*255), int((float64(b)/65535.)*255))
+			r, g, b, a := m.At(x, y).RGBA()
+			c := Rgba(int((float64(r)/65535.)*255), int((float64(g)/65535.)*255), int((float64(b)/65535.)*255), int((float64(a)/65535.)*255))
 			pixels[i] = c
 			i++
 		}
@@ -43,18 +45,20 @@ func LoadTexture(filename string) (*Texture, error) {
 	}, nil
 }
 
-func DrawTexture(x, y float64, t *Texture, tint Color) {
+// DrawTexture draws a texture to the screen at the specified location.
+func DrawTexture(x, y float64, t *Texture) {
 	if t == nil {
 		panic("texture cannot be nil")
 	}
-	driver.DrawTexture(int(x), int(y), 0, 0, t.W, t.H, t, tint)
+	driver.DrawTexture(int(x), int(y), 0, 0, t.W, t.H, t)
 }
 
-func DrawTextureRect(x, y float64, srcX, srcY, srcW, srcH int, t *Texture, tint Color) {
+// DrawTextureRect extracts a sub-rectangle from a texture and draws it to the screen.
+func DrawTextureRect(x, y float64, srcX, srcY, srcW, srcH int, t *Texture) {
 	if t == nil {
 		panic("texture cannot be nil")
 	}
-	driver.DrawTexture(int(x), int(y), srcX, srcY, srcW, srcH, t, tint)
+	driver.DrawTexture(int(x), int(y), srcX, srcY, srcW, srcH, t)
 }
 
 func fmin4(a, b, c, d float64) float64 {
@@ -65,6 +69,7 @@ func fmax4(a, b, c, d float64) float64 {
 	return math.Max(math.Max(math.Max(a, b), c), d)
 }
 
+// DrawTextureRotate draws a rotated texture to the screen
 func DrawTextureRotate(x, y float64, srcX, srcY, srcW, srcH, cx, cy int, sx, sy, angle float64, t *Texture) {
 	if t == nil {
 		panic("texture cannot be nil")
@@ -154,6 +159,7 @@ func iabs(x int) int {
 	return x
 }
 
+// DrawLine draws a line
 func DrawLine(x1, y1, x2, y2 float64, c Color) {
 	ix1 := int(x1)
 	iy1 := int(y1)
@@ -196,6 +202,7 @@ func DrawLine(x1, y1, x2, y2 float64, c Color) {
 	}
 }
 
+// DrawRect draws a rectangle
 func DrawRect(x, y, w, h float64, c Color) {
 	ix := int(x)
 	iy := int(y)
@@ -208,6 +215,7 @@ func DrawRect(x, y, w, h float64, c Color) {
 	drawVLine(ix+iw, iy, iy+ih, c)
 }
 
+// FillRect draws a filled rectangle
 func FillRect(x, y, w, h float64, c Color) {
 	ix := int(x)
 	iy := int(y)
@@ -219,6 +227,7 @@ func FillRect(x, y, w, h float64, c Color) {
 	// }
 }
 
+// DrawCircle draws a circle
 func DrawCircle(x, y, r float64, c Color) {
 	if r <= 0 {
 		return
@@ -250,6 +259,7 @@ func DrawCircle(x, y, r float64, c Color) {
 	}
 }
 
+// FillCircle draws a filled circle
 func FillCircle(x, y, r float64, c Color) {
 	if r <= 0 {
 		return
@@ -265,9 +275,8 @@ func FillCircle(x, y, r float64, c Color) {
 	for ey >= ex {
 		drawHLine(ix-ex, ix+ex, iy-ey, c)
 		drawHLine(ix-ey, ix+ey, iy-ex, c)
-		drawHLine(ix-ex, ix+ex, iy+ey, c)
 		drawHLine(ix-ey, ix+ey, iy+ex, c)
-
+		drawHLine(ix-ex, ix+ex, iy+ey, c)
 		if err >= 0 {
 			err += 4*(ex-ey) + 10
 			ey--
@@ -278,6 +287,7 @@ func FillCircle(x, y, r float64, c Color) {
 	}
 }
 
+// DrawEllipse draws an ellipse
 func DrawEllipse(x, y, rx, ry float64, c Color) {
 	a2 := int(rx * rx)
 	b2 := int(ry * ry)
@@ -322,6 +332,7 @@ func DrawEllipse(x, y, rx, ry float64, c Color) {
 	}
 }
 
+// FillEllipse draws a filled ellipse
 func FillEllipse(x, y, rx, ry float64, c Color) {
 	a2 := int(rx * rx)
 	b2 := int(ry * ry)
@@ -384,6 +395,7 @@ func drawChar(font *Font, x, y int, ch byte, bk, fg Color) {
 	}
 }
 
+// DrawChar renders a character using the specified font. A Transparent color can be used for the background.
 func DrawChar(font *Font, x, y float64, ch byte, bk, fg Color) {
 	ix := int(x)
 	iy := int(y)
@@ -409,6 +421,7 @@ func DrawChar(font *Font, x, y float64, ch byte, bk, fg Color) {
 	}
 }
 
+// DrawString renders a string using the specified font. The background color can be Transparent
 func DrawString(font *Font, x, y float64, str string, bk, fg Color) {
 	ix := int(x)
 	iy := int(y)

@@ -1,7 +1,9 @@
 package gfx
 
+// Key type used to hold key codes
 type Key byte
 
+// Predefined key codes
 const (
 	KeyUndefined   = 0x00
 	KeyMouseLeft   = 0x01

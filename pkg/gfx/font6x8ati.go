@@ -1,5 +1,6 @@
 package gfx
 
+// Font6x8Ati ATI Wonder 6 x8 raster font
 var Font6x8Ati = &Font{
 	W:         6,
 	H:         8,

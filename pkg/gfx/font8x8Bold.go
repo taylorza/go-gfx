@@ -1,5 +1,6 @@
 package gfx
 
+// Font8x8Bold 8 x 8 Bold raster font
 var Font8x8Bold = &Font{
 	W:         8,
 	H:         8,
