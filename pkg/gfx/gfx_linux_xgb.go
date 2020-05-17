@@ -8,15 +8,14 @@ import (
 )
 
 // BigRequest extentions
-
-func putImageRequest(c *xgb.Conn, Format byte, Drawable xproto.Drawable, Gc xproto.Gcontext,
+func putImageRequest(Format byte, Drawable xproto.Drawable, Gc xproto.Gcontext,
 	Width, Height uint16,
 	DstX, DstY int16,
 	LeftPad byte,
 	Depth byte,
-	Data []byte) []byte {
+	imageByteCount int) (cmd []byte, imageOffset int) {
 
-	size := xgb.Pad(28 + xgb.Pad(len(Data)))
+	size := xgb.Pad(28 + xgb.Pad(imageByteCount))
 	buf := make([]byte, size)
 	b := 0
 
@@ -58,12 +57,20 @@ func putImageRequest(c *xgb.Conn, Format byte, Drawable xproto.Drawable, Gc xpro
 
 	b += 2
 
-	copy(buf[b:], Data)
-	b += len(Data)
+	//	copy(buf[b:], Data)
+	//	b += len(Data)
 
-	return buf
+	return buf, b
 }
 
+func putImage(c *xgb.Conn, cmd []byte) xproto.PutImageCookie {
+
+	cookie := c.NewCookie(true, false)
+	c.NewRequest(cmd, cookie)
+	return xproto.PutImageCookie{Cookie: cookie}
+}
+
+/*
 func putImage(c *xgb.Conn, Format byte, Drawable xproto.Drawable, Gc xproto.Gcontext,
 	Width, Height uint16,
 	DstX, DstY int16,
@@ -75,3 +82,4 @@ func putImage(c *xgb.Conn, Format byte, Drawable xproto.Drawable, Gc xproto.Gcon
 	c.NewRequest(putImageRequest(c, Format, Drawable, Gc, Width, Height, DstX, DstY, LeftPad, Depth, Data), cookie)
 	return xproto.PutImageCookie{Cookie: cookie}
 }
+*/

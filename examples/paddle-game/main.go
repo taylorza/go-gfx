@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 	"runtime/pprof"
+	"time"
 
 	"github.com/taylorza/go-gfx/pkg/gfx"
 )
@@ -87,17 +88,19 @@ var (
 
 func main() {
 	flag.Parse()
-
-	if *cpuprofile != "" {
-		f, err := os.Create(*cpuprofile)
-		if err != nil {
-			log.Fatal(err)
+	go func() {
+		if *cpuprofile != "" {
+			f, err := os.Create(*cpuprofile)
+			if err != nil {
+				log.Fatal(err)
+			}
+			pprof.StartCPUProfile(f)
+			defer pprof.StopCPUProfile()
 		}
-		pprof.StartCPUProfile(f)
-		defer pprof.StopCPUProfile()
-	}
+		time.Sleep(20 * time.Second)
+	}()
 
-	if gfx.Init("GFX Paddle Game", 10, 10, 800, 600, 1, 1) {
+	if gfx.Init("GFX Paddle Game", 10, 10, 400, 300, 2, 2) {
 		gfx.Run(&myapp{})
 	}
 

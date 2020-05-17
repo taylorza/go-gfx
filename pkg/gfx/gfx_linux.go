@@ -4,6 +4,7 @@ package gfx
 
 import (
 	"fmt"
+	"log"
 	"sync/atomic"
 	"unsafe"
 
@@ -32,6 +33,7 @@ type xcbDriver struct {
 	backBufPtr   uintptr
 	renderBuffer []byte
 	scaleBuffer  []byte
+	putImageCmd  []byte
 
 	renderElapsed float64
 	renderPeriod  float64
@@ -126,37 +128,31 @@ func (e *xcbDriver) Init() error {
 	return nil
 }
 
-func (e *xcbDriver) Clear(c Color) {
-	e.backBuffer[0] = byte(c.B())
-	e.backBuffer[1] = byte(c.G())
-	e.backBuffer[2] = byte(c.R())
-	e.backBuffer[3] = 255
-
-	for i := 4; i < e.width*4*e.height; i *= 2 {
-		copy(e.backBuffer[i:], e.backBuffer[:i])
-	}
-}
-
 func (e *xcbDriver) idx(x, y int) int {
-	return (y * e.width * 4) + (x * 4)
+	return (y*e.width + x) * 4
 }
 
 func (e *xcbDriver) idxPtr(x, y int) uintptr {
 	return uintptr(e.backBufPtr + uintptr((y*e.width*4)+(x*4)))
 }
 
+func (e *xcbDriver) Clear(c Color) {
+	*(*Color)(unsafe.Pointer(e.backBufPtr)) = c
+
+	for i := 4; i < e.width*4*e.height; i *= 2 {
+		copy(e.backBuffer[i:], e.backBuffer[:i])
+	}
+}
+
 func (e *xcbDriver) SetPixel(x, y int, c Color) {
 	if x < 0 || x > e.width || y < 0 || y > e.height {
 		return
 	}
-	e.setPixelFast(e.idxPtr(x, y), c)
-}
-
-func (e *xcbDriver) setPixelFast(offset uintptr, c Color) {
-	*(*byte)(unsafe.Pointer(offset + 0)) = byte(c.B())
-	*(*byte)(unsafe.Pointer(offset + 1)) = byte(c.G())
-	*(*byte)(unsafe.Pointer(offset + 2)) = byte(c.R())
-	*(*byte)(unsafe.Pointer(offset + 3)) = 255
+	offset := e.idxPtr(x, y)
+	if c.A() != 255 {
+		c = c.Blend(*(*Color)(unsafe.Pointer(offset)))
+	}
+	*(*Color)(unsafe.Pointer(offset)) = c
 }
 
 func (e *xcbDriver) FillRect(x, y, w, h int, c Color) {
@@ -180,12 +176,21 @@ func (e *xcbDriver) FillRect(x, y, w, h int, c Color) {
 	}
 
 	offset := e.idxPtr(x, y)
-	for i := 0; i < w; i++ {
-		e.setPixelFast(offset+uintptr(i*4), c)
-	}
-
-	for i := 1; i < h; i++ {
-		copy(e.backBuffer[e.idx(x, y+i):], e.backBuffer[e.idx(x, y+i-1):e.idx(x+w, y+i-1)])
+	if c.A() != 255 {
+		for y1 := 0; y1 < h; y1++ {
+			for x1 := 0; x1 < w; x1++ {
+				p := (*Color)(unsafe.Pointer(offset + uintptr(x1*4)))
+				*p = c.Blend(*p)
+			}
+			offset += uintptr(e.width * 4)
+		}
+	} else {
+		for i := 0; i < w; i++ {
+			*(*Color)(unsafe.Pointer(offset + uintptr(i*4))) = c
+		}
+		for i := 1; i < h; i++ {
+			copy(e.backBuffer[e.idx(x, y+i):], e.backBuffer[e.idx(x, y+i-1):e.idx(x+w, y+i-1)])
+		}
 	}
 }
 
@@ -247,8 +252,7 @@ func (e *xcbDriver) DrawTexture(x, y, srcX, srcY, srcW, srcH int, t *Texture) {
 		y2 -= (y + y2) - e.height
 	}
 
-	transparent := t.pixels[0]
-	textureRowOffset := uintptr((srcY+y1)*t.W + (srcX + x1))
+	textureRowOffset := uintptr(((srcY+y1)*t.W + (srcX + x1)) * 4)
 	bufferRowOffset := e.idxPtr(x, y)
 
 	tptr := uintptr(unsafe.Pointer(&t.pixels[0]))
@@ -256,14 +260,15 @@ func (e *xcbDriver) DrawTexture(x, y, srcX, srcY, srcW, srcH int, t *Texture) {
 		i := textureRowOffset
 		j := bufferRowOffset
 		for tx := x1; tx < x2; tx++ {
-			c := Color(*(*uint32)(unsafe.Pointer(tptr + i*4)))
-			if c != transparent {
-				e.setPixelFast(j, c)
+			c := Color(*(*uint32)(unsafe.Pointer(tptr + i)))
+			if c.A() != 255 {
+				c = c.Blend(*(*Color)(unsafe.Pointer(j)))
 			}
-			i++
+			*(*Color)(unsafe.Pointer(j)) = c
+			i += 4
 			j += 4
 		}
-		textureRowOffset += uintptr(t.W)
+		textureRowOffset += uintptr(t.W * 4)
 		bufferRowOffset += uintptr(e.width * 4)
 	}
 }
@@ -284,7 +289,10 @@ func (e *xcbDriver) HLine(x1, x2, y int, c Color) {
 
 	offset := e.idxPtr(x1, y)
 	for i := uintptr(0); i <= uintptr(x2-x1); i++ {
-		e.setPixelFast(offset, c)
+		if c.A() != 255 {
+			c = c.Blend(*(*Color)(unsafe.Pointer(offset)))
+		}
+		*(*Color)(unsafe.Pointer(offset)) = c
 		offset += 4
 	}
 }
@@ -305,7 +313,10 @@ func (e *xcbDriver) VLine(x, y1, y2 int, c Color) {
 
 	offset := e.idxPtr(x, y1)
 	for i := uintptr(0); i <= uintptr(y2-y1); i++ {
-		e.setPixelFast(offset, c)
+		if c.A() != 255 {
+			c = c.Blend(*(*Color)(unsafe.Pointer(offset)))
+		}
+		*(*Color)(unsafe.Pointer(offset)) = c
 		offset += uintptr(e.width * 4)
 	}
 }
@@ -363,7 +374,14 @@ func (e *xcbDriver) CreateDevice() bool {
 	e.renderBuffer = make([]byte, bufSize, bufSize)
 
 	bufSize = int((e.width * e.sx * 4) * (e.height * e.sy))
-	e.scaleBuffer = make([]byte, bufSize, bufSize)
+	var imageOffset int
+	e.putImageCmd, imageOffset = putImageRequest(
+		xproto.ImageFormatZPixmap,
+		xproto.Drawable(e.pid),
+		e.gid,
+		uint16(e.width*e.sx), uint16(e.height*e.sy), 0, 0, 0,
+		e.screen.RootDepth, bufSize)
+	e.scaleBuffer = e.putImageCmd[imageOffset:]
 
 	return true
 }
@@ -380,9 +398,8 @@ func (e *xcbDriver) Render(delta float64) {
 	e.renderElapsed += delta
 	if e.renderElapsed >= e.renderPeriod {
 		if atomic.CompareAndSwapInt32(&e.rendering, 0, 1) {
-			copy(e.renderBuffer, e.backBuffer)
 			e.renderElapsed -= e.renderPeriod
-
+			copy(e.renderBuffer, e.backBuffer)
 			event := xproto.ExposeEvent{
 				Count:    1,
 				Sequence: 0,
@@ -392,8 +409,9 @@ func (e *xcbDriver) Render(delta float64) {
 				X:        0,
 				Y:        0,
 			}
-
 			xproto.SendEvent(e.conn, false, e.wid, xproto.EventMaskExposure, string(event.Bytes()))
+		} else {
+			log.Println("dropped frame")
 		}
 	}
 }
@@ -434,12 +452,12 @@ func (e *xcbDriver) StartEventLoop() {
 					iomgr.setKeyPressed(KeyMouseRight, false)
 				}
 			case xproto.KeyPressEvent:
-				fmt.Printf("Pressed: %0.2x\n", evt.Detail)
+				//fmt.Printf("Pressed: %0.2x\n", evt.Detail)
 				iomgr.setMappedKeyPressed(byte(evt.Detail), true)
 			case xproto.KeyReleaseEvent:
 				iomgr.setMappedKeyPressed(byte(evt.Detail), false)
 			default:
-				//fmt.Printf("Event: %v\n", evt)
+				fmt.Printf("Event: %v\n", evt)
 			}
 		}
 		if xerr != nil {
@@ -449,28 +467,28 @@ func (e *xcbDriver) StartEventLoop() {
 }
 
 func (e *xcbDriver) scaleImage() {
-	dst := 0
-	src := 0
-	for y := 0; y < e.height*e.sy; y += e.sy {
-		for x := 0; x < e.width*e.sx; x++ {
-			xi := x / e.sx
-			e.scaleBuffer[dst+(x*4)+0] = e.renderBuffer[src+(xi*4)+0]
-			e.scaleBuffer[dst+(x*4)+1] = e.renderBuffer[src+(xi*4)+1]
-			e.scaleBuffer[dst+(x*4)+2] = e.renderBuffer[src+(xi*4)+2]
-			e.scaleBuffer[dst+(x*4)+3] = e.renderBuffer[src+(xi*4)+3]
+	if e.sx == 1 && e.sy == 1 {
+		copy(e.scaleBuffer, e.renderBuffer)
+	} else {
+		dst := uintptr(unsafe.Pointer(&e.scaleBuffer[0]))
+		src := uintptr(unsafe.Pointer(&e.renderBuffer[0]))
+		cdst := 0
+		for y := 0; y < e.height; y++ {
+			for x := 0; x < e.width; x++ {
+				srcPixel := *(*uint32)(unsafe.Pointer(src + uintptr(x)*4))
+				for xi := 0; xi < e.sx; xi++ {
+					*(*uint32)(unsafe.Pointer(dst + uintptr((x*e.sx+xi)*4))) = srcPixel
+				}
+			}
+			row := cdst
+			for yi := 1; yi <= e.sy; yi++ {
+				cdst += e.width * e.sx * 4
+				copy(e.scaleBuffer[cdst:], e.scaleBuffer[row:row+(e.width*e.sx*4)])
+				row += e.width * e.sx * 4
+			}
+			dst += uintptr(e.width * e.sx * e.sy * 4)
+			src += uintptr(e.width * 4)
 		}
-		row := dst
-		dst += e.width * e.sx * 4
-		copy(e.scaleBuffer[dst:], e.scaleBuffer[row:row+(e.width*4*e.sx)*(e.sy-1)])
-
-		dst += (e.width * e.sx * 4) * (e.sy - 1)
-		src += e.width * 4
 	}
-
-	putImage(e.conn, xproto.ImageFormatZPixmap,
-		xproto.Drawable(e.pid), e.gid,
-		uint16(e.width*e.sx), uint16(e.height*e.sy), 0, 0,
-		0,
-		e.screen.RootDepth,
-		e.scaleBuffer)
+	putImage(e.conn, e.putImageCmd)
 }
