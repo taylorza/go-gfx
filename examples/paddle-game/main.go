@@ -100,7 +100,7 @@ func main() {
 		time.Sleep(20 * time.Second)
 	}()
 
-	if gfx.Init("GFX Paddle Game", 10, 10, 400, 300, 2, 2) {
+	if gfx.Init("GFX Paddle Game", 10, 10, 800, 600, 1, 1) {
 		gfx.Run(&myapp{})
 	}
 

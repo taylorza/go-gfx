@@ -4,7 +4,6 @@ package gfx
 
 import (
 	"fmt"
-	"log"
 	"sync/atomic"
 	"unsafe"
 
@@ -340,7 +339,8 @@ func (e *xcbDriver) CreateWindow(x, y, w, h, xscale, yscale int) bool {
 				xproto.EventMaskPointerMotion |
 				xproto.EventMaskKeyPress |
 				xproto.EventMaskKeyRelease |
-				xproto.EventMaskExposure})
+				xproto.EventMaskExposure |
+				xproto.EventMaskStructureNotify})
 	xproto.MapWindow(e.conn, e.wid)
 
 	e.width = w
@@ -398,7 +398,9 @@ func (e *xcbDriver) Render(delta float64) {
 	e.renderElapsed += delta
 	if e.renderElapsed >= e.renderPeriod {
 		if atomic.CompareAndSwapInt32(&e.rendering, 0, 1) {
-			e.renderElapsed -= e.renderPeriod
+			for e.renderElapsed >= e.renderPeriod {
+				e.renderElapsed -= e.renderPeriod
+			}
 			copy(e.renderBuffer, e.backBuffer)
 			event := xproto.ExposeEvent{
 				Count:    1,
@@ -410,8 +412,6 @@ func (e *xcbDriver) Render(delta float64) {
 				Y:        0,
 			}
 			xproto.SendEvent(e.conn, false, e.wid, xproto.EventMaskExposure, string(event.Bytes()))
-		} else {
-			log.Println("dropped frame")
 		}
 	}
 }
@@ -425,6 +425,8 @@ func (e *xcbDriver) StartEventLoop() {
 		}
 		if ev != nil {
 			switch evt := ev.(type) {
+			case xproto.NoExposureEvent:
+				continue
 			case xproto.ExposeEvent:
 				e.scaleImage()
 				xproto.CopyArea(e.conn, xproto.Drawable(e.pid),
