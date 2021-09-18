@@ -112,12 +112,12 @@ type Color uint32
 
 // Rgb creates a new color using the specified RGB color components. Each component is a value between 0 and 255.
 func Rgb(r, g, b int) Color {
-	return Color((0xff << 24) | (r << 16) | (g << 8) | b)
+	return Color((uint32(0xff) << 24) | (uint32(r) << 16) | (uint32(g) << 8) | uint32(b))
 }
 
 // Rgba creates a new color using the specified RGBA color components. Each component is a value between 0 and 255.
 func Rgba(r, g, b, a int) Color {
-	return Color((a << 24) | (r << 16) | (g << 8) | b)
+	return Color((uint32(a) << 24) | (uint32(r) << 16) | (uint32(g) << 8) | uint32(b))
 }
 
 // R returns the red component of the color

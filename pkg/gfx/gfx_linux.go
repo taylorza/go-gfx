@@ -1,3 +1,4 @@
+//go:build linux
 // +build linux
 
 package gfx
@@ -29,7 +30,7 @@ type xcbDriver struct {
 	sx           int
 	sy           int
 	backBuffer   []byte
-	backBufPtr   uintptr
+	backBufPtr   unsafe.Pointer
 	renderBuffer []byte
 	scaleBuffer  []byte
 	putImageCmd  []byte
@@ -131,8 +132,8 @@ func (e *xcbDriver) idx(x, y int) int {
 	return (y*e.width + x) * 4
 }
 
-func (e *xcbDriver) idxPtr(x, y int) uintptr {
-	return uintptr(e.backBufPtr + uintptr((y*e.width*4)+(x*4)))
+func (e *xcbDriver) idxPtr(x, y int) unsafe.Pointer {
+	return unsafe.Add(e.backBufPtr, (y*e.width*4)+(x*4))
 }
 
 func (e *xcbDriver) Clear(c Color) {
@@ -178,14 +179,14 @@ func (e *xcbDriver) FillRect(x, y, w, h int, c Color) {
 	if c.A() != 255 {
 		for y1 := 0; y1 < h; y1++ {
 			for x1 := 0; x1 < w; x1++ {
-				p := (*Color)(unsafe.Pointer(offset + uintptr(x1*4)))
+				p := (*Color)(unsafe.Add(offset, x1*4))
 				*p = c.Blend(*p)
 			}
-			offset += uintptr(e.width * 4)
+			offset = unsafe.Add(offset, e.width*4)
 		}
 	} else {
 		for i := 0; i < w; i++ {
-			*(*Color)(unsafe.Pointer(offset + uintptr(i*4))) = c
+			*(*Color)(unsafe.Add(offset, i*4)) = c
 		}
 		for i := 1; i < h; i++ {
 			copy(e.backBuffer[e.idx(x, y+i):], e.backBuffer[e.idx(x, y+i-1):e.idx(x+w, y+i-1)])
@@ -251,24 +252,24 @@ func (e *xcbDriver) DrawTexture(x, y, srcX, srcY, srcW, srcH int, t *Texture) {
 		y2 -= (y + y2) - e.height
 	}
 
-	textureRowOffset := uintptr(((srcY+y1)*t.W + (srcX + x1)) * 4)
+	textureRowOffset := ((srcY+y1)*t.W + (srcX + x1)) * 4
 	bufferRowOffset := e.idxPtr(x, y)
 
-	tptr := uintptr(unsafe.Pointer(&t.pixels[0]))
+	tptr := unsafe.Pointer(&t.pixels[0])
 	for ty := y1; ty < y2; ty++ {
 		i := textureRowOffset
 		j := bufferRowOffset
 		for tx := x1; tx < x2; tx++ {
-			c := Color(*(*uint32)(unsafe.Pointer(tptr + i)))
+			c := Color(*(*uint32)(unsafe.Add(tptr, i)))
 			if c.A() != 255 {
 				c = c.Blend(*(*Color)(unsafe.Pointer(j)))
 			}
 			*(*Color)(unsafe.Pointer(j)) = c
 			i += 4
-			j += 4
+			j = unsafe.Add(j, 4)
 		}
-		textureRowOffset += uintptr(t.W * 4)
-		bufferRowOffset += uintptr(e.width * 4)
+		textureRowOffset += t.W * 4
+		bufferRowOffset = unsafe.Add(bufferRowOffset, e.width*4)
 	}
 }
 
@@ -287,12 +288,12 @@ func (e *xcbDriver) HLine(x1, x2, y int, c Color) {
 	}
 
 	offset := e.idxPtr(x1, y)
-	for i := uintptr(0); i <= uintptr(x2-x1); i++ {
+	for i := 0; i <= x2-x1; i++ {
 		if c.A() != 255 {
-			c = c.Blend(*(*Color)(unsafe.Pointer(offset)))
+			c = c.Blend(*(*Color)(offset))
 		}
-		*(*Color)(unsafe.Pointer(offset)) = c
-		offset += 4
+		*(*Color)(offset) = c
+		offset = unsafe.Add(offset, 4)
 	}
 }
 
@@ -311,12 +312,12 @@ func (e *xcbDriver) VLine(x, y1, y2 int, c Color) {
 	}
 
 	offset := e.idxPtr(x, y1)
-	for i := uintptr(0); i <= uintptr(y2-y1); i++ {
+	for i := 0; i <= y2-y1; i++ {
 		if c.A() != 255 {
 			c = c.Blend(*(*Color)(unsafe.Pointer(offset)))
 		}
 		*(*Color)(unsafe.Pointer(offset)) = c
-		offset += uintptr(e.width * 4)
+		offset = unsafe.Add(offset, e.width*4)
 	}
 }
 
@@ -369,9 +370,9 @@ func (e *xcbDriver) CreateDevice() bool {
 		xproto.Drawable(e.wid), uint16(e.width*e.sx), uint16(e.height*e.sy))
 
 	bufSize := int(e.width * 4 * e.height)
-	e.backBuffer = make([]byte, bufSize, bufSize)
-	e.backBufPtr = uintptr(unsafe.Pointer(&e.backBuffer[0]))
-	e.renderBuffer = make([]byte, bufSize, bufSize)
+	e.backBuffer = make([]byte, bufSize)
+	e.backBufPtr = unsafe.Pointer(&e.backBuffer[0])
+	e.renderBuffer = make([]byte, bufSize)
 
 	bufSize = int((e.width * e.sx * 4) * (e.height * e.sy))
 	var imageOffset int
@@ -472,14 +473,14 @@ func (e *xcbDriver) scaleImage() {
 	if e.sx == 1 && e.sy == 1 {
 		copy(e.scaleBuffer, e.renderBuffer)
 	} else {
-		dst := uintptr(unsafe.Pointer(&e.scaleBuffer[0]))
-		src := uintptr(unsafe.Pointer(&e.renderBuffer[0]))
+		dst := unsafe.Pointer(&e.scaleBuffer[0])
+		src := unsafe.Pointer(&e.renderBuffer[0])
 		cdst := 0
 		for y := 0; y < e.height; y++ {
 			for x := 0; x < e.width; x++ {
-				srcPixel := *(*uint32)(unsafe.Pointer(src + uintptr(x)*4))
+				srcPixel := *(*uint32)(unsafe.Add(src, x*4))
 				for xi := 0; xi < e.sx; xi++ {
-					*(*uint32)(unsafe.Pointer(dst + uintptr((x*e.sx+xi)*4))) = srcPixel
+					*(*uint32)(unsafe.Add(dst, (x*e.sx+xi)*4)) = srcPixel
 				}
 			}
 			row := cdst
@@ -488,8 +489,8 @@ func (e *xcbDriver) scaleImage() {
 				copy(e.scaleBuffer[cdst:], e.scaleBuffer[row:row+(e.width*e.sx*4)])
 				row += e.width * e.sx * 4
 			}
-			dst += uintptr(e.width * e.sx * e.sy * 4)
-			src += uintptr(e.width * 4)
+			dst = unsafe.Add(dst, e.width*e.sx*e.sy*4)
+			src = unsafe.Add(src, e.width*4)
 		}
 	}
 	putImage(e.conn, e.putImageCmd)
