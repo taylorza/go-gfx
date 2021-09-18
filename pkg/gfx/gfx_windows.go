@@ -1,3 +1,4 @@
+//go:build windows
 // +build windows
 
 package gfx
@@ -12,9 +13,10 @@ import (
 )
 
 func init() {
+	windowClassName, _ := syscall.UTF16PtrFromString("GO-GRAFIX-WINDOW")
 	driver = &windowsDriver{
-		windowClassName: syscall.StringToUTF16Ptr("GO-GRAFIX-WINDOW"),
-		dibPixels:       make([]Color, 0, 0),
+		windowClassName: windowClassName,
+		dibPixels:       make([]Color, 0),
 		renderPeriod:    1.0 / 60.0,
 	}
 }
@@ -26,7 +28,7 @@ type windowsDriver struct {
 	width           int
 	height          int
 	backBuffer      []Color
-	backBufferPtr   uintptr
+	backBufferPtr   unsafe.Pointer
 	dibPixels       []Color
 	scaleX          float64
 	scaleY          float64
@@ -80,10 +82,11 @@ func (e *windowsDriver) CreateWindow(x, y, w, h, xscale, yscale int) bool {
 	rc := w32.RECT{Left: 0, Top: 0, Right: int32(w * xscale), Bottom: int32(h * yscale)}
 	w32.AdjustWindowRectEx(&rc, style, false, exStyle)
 
+	windowName, _ := syscall.UTF16PtrFromString("")
 	e.hMainWnd = w32.CreateWindowEx(
 		exStyle,
 		e.windowClassName,
-		syscall.StringToUTF16Ptr(""),
+		windowName,
 		style,
 		x, y, int(rc.Right-rc.Left), int(rc.Bottom-rc.Top),
 		w32.HWND(0),
@@ -139,9 +142,10 @@ func (e *windowsDriver) CreateDevice() bool {
 	w32.GetObject(w32.HGDIOBJ(e.dib), unsafe.Sizeof(w32.BITMAP{}), unsafe.Pointer(&bmp))
 	bytes := bmp.BmWidth * bmp.BmHeight
 
-	e.backBuffer = make([]Color, bytes, bytes)
-	e.backBufferPtr = uintptr(unsafe.Pointer(&e.backBuffer[0]))
+	e.backBuffer = make([]Color, bytes)
+	e.backBufferPtr = unsafe.Pointer(&e.backBuffer[0])
 
+	// Point the slice e.dibPixels over the pbits returned by CreateDIBSection
 	sh := (*reflect.SliceHeader)(unsafe.Pointer(&e.dibPixels))
 	sh.Len = int(bytes)
 	sh.Cap = int(bytes)
@@ -257,17 +261,8 @@ func (e *windowsDriver) SetPixel(x, y int, c Color) {
 	if x < 0 || x >= e.width || y < 0 || y >= e.height {
 		return
 	}
-
-	p := (*Color)(unsafe.Pointer(uintptr(e.backBufferPtr + uintptr((y*e.width+x)*4))))
-	if c.A() != 255 {
-		*p = c.Blend(*p)
-	} else {
-		*p = c
-	}
-}
-
-func (e *windowsDriver) fastSetPixel(x, y int, c Color) {
-	p := (*Color)(unsafe.Pointer(uintptr(e.backBufferPtr + uintptr((y*e.width+x)*4))))
+	p := (*Color)(unsafe.Add(e.backBufferPtr, (y*e.width+x)*4))
+	//p := (*Color)(unsafe.Pointer(uintptr(e.backBufferPtr + uintptr((y*e.width+x)*4))))
 	if c.A() != 255 {
 		*p = c.Blend(*p)
 	} else {
@@ -296,18 +291,19 @@ func (e *windowsDriver) FillRect(x, y, w, h int, c Color) {
 		h -= (y + h) - e.height
 	}
 
-	ptr := uintptr(e.backBufferPtr + uintptr((y*e.width+x)*4))
+	ptr := unsafe.Add(e.backBufferPtr, (y*e.width+x)*4)
+	//ptr := uintptr(e.backBufferPtr + uintptr((y*e.width+x)*4))
 	if c.A() != 255 {
 		for y1 := 0; y1 < h; y1++ {
 			for x1 := 0; x1 < w; x1++ {
-				p := (*Color)(unsafe.Pointer(ptr + uintptr(x1*4)))
+				p := (*Color)(unsafe.Add(ptr, x1*4))
 				*p = c.Blend(*p)
 			}
-			ptr += uintptr(e.width * 4)
+			ptr = unsafe.Add(ptr, e.width*4)
 		}
 	} else {
 		for i := uintptr(0); i < uintptr(w); i++ {
-			*(*Color)(unsafe.Pointer(ptr + i*4)) = c
+			*(*Color)(unsafe.Add(ptr, i*4)) = c
 		}
 		for i := 1; i < h; i++ {
 			copy(e.backBuffer[(y+i)*e.width+x:], e.backBuffer[(y+i-1)*e.width+x:(y+i-1)*e.width+x+w])
@@ -377,18 +373,18 @@ func (e *windowsDriver) DrawTexture(x, y int, srcX, srcY, srcW, srcH int, t *Tex
 	textureRowOffset := uintptr((srcY+y1)*t.W + (srcX + x1))
 	bufferRowOffset := uintptr(y*e.width + x)
 
-	tptr := uintptr(unsafe.Pointer(&t.pixels[0]))
-	sptr := uintptr(unsafe.Pointer(&e.backBuffer[0]))
+	tptr := unsafe.Pointer(&t.pixels[0])
+	sptr := unsafe.Pointer(&e.backBuffer[0])
 
 	for ty := y1; ty < y2; ty++ {
 		i := textureRowOffset
 		j := bufferRowOffset
 		for tx := x1; tx < x2; tx++ {
-			c := Color(*(*uint32)(unsafe.Pointer(tptr + i*4)))
+			c := Color(*(*uint32)(unsafe.Add(tptr, i*4)))
 			if c.A() == 255 {
-				*(*uint32)(unsafe.Pointer(sptr + j*4)) = uint32(c)
+				*(*uint32)(unsafe.Add(sptr, j*4)) = uint32(c)
 			} else {
-				*(*uint32)(unsafe.Pointer(sptr + j*4)) = uint32(c.Blend(*(*Color)(unsafe.Pointer(sptr + j*4))))
+				*(*uint32)(unsafe.Add(sptr, j*4)) = uint32(c.Blend(*(*Color)(unsafe.Add(sptr, j*4))))
 			}
 			i++
 			j++
@@ -413,15 +409,15 @@ func (e *windowsDriver) HLine(x1, x2, y int, c Color) {
 		return
 	}
 
-	pixels := uintptr(unsafe.Pointer(&e.backBuffer[0]))
-	pixels += uintptr((y*e.width + x1) * 4)
+	pixels := unsafe.Pointer(&e.backBuffer[0])
+	pixels = unsafe.Add(pixels, (y*e.width+x1)*4)
 	if c.A() == 255 {
 		for i := uintptr(0); i <= uintptr(x2-x1); i++ {
-			*(*Color)(unsafe.Pointer(pixels + i*4)) = c
+			*(*Color)(unsafe.Add(pixels, i*4)) = c
 		}
 	} else {
 		for i := uintptr(0); i <= uintptr(x2-x1); i++ {
-			*(*Color)(unsafe.Pointer(pixels + i*4)) = c.Blend(*(*Color)(unsafe.Pointer(pixels + i*4)))
+			*(*Color)(unsafe.Add(pixels, i*4)) = c.Blend(*(*Color)(unsafe.Add(pixels, i*4)))
 		}
 	}
 }
@@ -441,15 +437,15 @@ func (e *windowsDriver) VLine(x, y1, y2 int, c Color) {
 		return
 	}
 
-	pixels := uintptr(unsafe.Pointer(&e.backBuffer[0]))
-	pixels += uintptr((y1*e.width + x) * 4)
+	pixels := unsafe.Pointer(&e.backBuffer[0])
+	pixels = unsafe.Add(pixels, (y1*e.width+x)*4)
 	if c.A() == 255 {
-		for i := uintptr(0); i <= uintptr(y2-y1); i++ {
-			*(*Color)(unsafe.Pointer(pixels + uintptr(e.width)*i*4)) = c
+		for i := 0; i <= y2-y1; i++ {
+			*(*Color)(unsafe.Add(pixels, e.width*i*4)) = c
 		}
 	} else {
-		for i := uintptr(0); i <= uintptr(y2-y1); i++ {
-			*(*Color)(unsafe.Pointer(pixels + uintptr(e.width)*i*4)) = c.Blend(*(*Color)(unsafe.Pointer(pixels + uintptr(e.width)*i*4)))
+		for i := 0; i <= y2-y1; i++ {
+			*(*Color)(unsafe.Add(pixels, e.width*i*4)) = c.Blend(*(*Color)(unsafe.Add(pixels, e.width*i*4)))
 		}
 	}
 }

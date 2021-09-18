@@ -1,6 +1,6 @@
 module github.com/taylorza/go-gfx
 
-go 1.14
+go 1.17
 
 require (
 	github.com/BurntSushi/xgb v0.0.0-20200324125942-20f126ea2843

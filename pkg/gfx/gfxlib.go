@@ -28,7 +28,7 @@ func LoadTexture(filename string) (*Texture, error) {
 		return nil, err
 	}
 	b := m.Bounds()
-	pixels := make([]Color, b.Dx()*b.Dy(), b.Dx()*b.Dy())
+	pixels := make([]Color, b.Dx()*b.Dy())
 	i := 0
 	for y := b.Min.Y; y < b.Max.Y; y++ {
 		for x := b.Min.X; x < b.Max.X; x++ {
@@ -370,28 +370,6 @@ func FillEllipse(x, y, rx, ry float64, c Color) {
 		}
 		sigma += a2 * ((4 * ey) + 6)
 		ey++
-	}
-}
-
-func drawChar(font *Font, x, y int, ch byte, bk, fg Color) {
-	if ch < font.FirstChar {
-		ch = font.FirstChar
-	}
-	if ch > font.LastChar {
-		ch = font.LastChar
-	}
-
-	firstByte := (int(ch) - int(font.FirstChar)) * font.H
-	for i := 0; i < font.H; i++ {
-		b := font.data[firstByte+i]
-		for j := 0; j < font.W; j++ {
-			if b&0x80 != 0 {
-				driver.SetPixel(x+j, y+i, fg)
-			} else if bk != Transparent {
-				driver.SetPixel(x+j, y+i, bk)
-			}
-			b <<= 1
-		}
 	}
 }
 
