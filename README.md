@@ -39,5 +39,6 @@ Use the 'go' command:
   func main() {
     if gfx.Init("GFX Example", 0, 0, 320, 240, 2, 2) {
       gfx.Rin(&myapp{})
+    }
   }
 ```
