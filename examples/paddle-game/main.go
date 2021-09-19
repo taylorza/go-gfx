@@ -87,6 +87,7 @@ var (
 )
 
 func main() {
+	defer pprof.StopCPUProfile()
 	flag.Parse()
 	go func() {
 		if *cpuprofile != "" {
@@ -95,7 +96,6 @@ func main() {
 				log.Fatal(err)
 			}
 			pprof.StartCPUProfile(f)
-			defer pprof.StopCPUProfile()
 		}
 		time.Sleep(20 * time.Second)
 	}()
