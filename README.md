@@ -1,4 +1,4 @@
-# go-gfx
+# go-gfx [![Go Reference](https://pkg.go.dev/badge/github.com/taylorza/go-gfx.svg)](https://pkg.go.dev/github.com/taylorza/go-gfx)
 
 Package **gfx** provides a simple native Go 2d graphics library for Windows and Linux.
 
