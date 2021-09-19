@@ -1,4 +1,4 @@
-name: Go-Windows
+name: Windows-Build
 
 on:
   push:
