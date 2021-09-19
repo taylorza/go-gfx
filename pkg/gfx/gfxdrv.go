@@ -4,7 +4,6 @@ var (
 	iomgr   *ioManager
 	driver  platformDriver
 	running bool
-	done    = make(chan bool)
 )
 
 type platformDriver interface {

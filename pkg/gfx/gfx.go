@@ -61,8 +61,10 @@ func Init(title string, x, y, w, h, xscale, yscale int) bool {
 
 // Run starts the application running and executes the platform specific event loop. This function blocks.
 func Run(app Application) {
+	app.Load()
 	go run(app)
 	driver.StartEventLoop()
+	app.Unload()
 }
 
 // Width returns the pixel width of graphics surface. This is an unscaled value.
@@ -242,7 +244,6 @@ var (
 )
 
 func run(app Application) {
-	app.Load()
 	running = true
 	lastFrame := time.Now()
 	frameTimer := 0.0
@@ -266,11 +267,8 @@ func run(app Application) {
 			frameCount = 0
 		}
 	}
-	app.Unload()
-	done <- true
 }
 
 func shutdown() {
 	running = false
-	<-done
 }
