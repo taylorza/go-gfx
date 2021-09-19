@@ -148,11 +148,11 @@ func (e *xcbDriver) SetPixel(x, y int, c Color) {
 	if x < 0 || x > e.width || y < 0 || y > e.height {
 		return
 	}
-	offset := e.idxPtr(x, y)
+	ptr := e.idxPtr(x, y)
 	if c.A() != 255 {
-		c = c.Blend(*(*Color)(unsafe.Pointer(offset)))
+		c = c.Blend(*(*Color)(unsafe.Pointer(ptr)))
 	}
-	*(*Color)(unsafe.Pointer(offset)) = c
+	*(*Color)(unsafe.Pointer(ptr)) = c
 }
 
 func (e *xcbDriver) FillRect(x, y, w, h int, c Color) {
@@ -175,18 +175,18 @@ func (e *xcbDriver) FillRect(x, y, w, h int, c Color) {
 		h -= (y + h) - e.height
 	}
 
-	offset := e.idxPtr(x, y)
+	ptr := e.idxPtr(x, y)
 	if c.A() != 255 {
 		for y1 := 0; y1 < h; y1++ {
 			for x1 := 0; x1 < w; x1++ {
-				p := (*Color)(unsafe.Add(offset, x1*4))
+				p := (*Color)(unsafe.Add(ptr, x1*4))
 				*p = c.Blend(*p)
 			}
-			offset = unsafe.Add(offset, e.width*4)
+			ptr = unsafe.Add(ptr, e.width*4)
 		}
 	} else {
 		for i := 0; i < w; i++ {
-			*(*Color)(unsafe.Add(offset, i*4)) = c
+			*(*Color)(unsafe.Add(ptr, i*4)) = c
 		}
 		for i := 1; i < h; i++ {
 			copy(e.backBuffer[e.idx(x, y+i):], e.backBuffer[e.idx(x, y+i-1):e.idx(x+w, y+i-1)])
@@ -253,7 +253,7 @@ func (e *xcbDriver) DrawTexture(x, y, srcX, srcY, srcW, srcH int, t *Texture) {
 	}
 
 	textureRowOffset := ((srcY+y1)*t.W + (srcX + x1)) * 4
-	bufferRowOffset := e.idxPtr(x, y)
+	bufferRowOffset := e.idx(x, y)
 
 	tptr := unsafe.Pointer(&t.pixels[0])
 	for ty := y1; ty < y2; ty++ {
@@ -261,15 +261,16 @@ func (e *xcbDriver) DrawTexture(x, y, srcX, srcY, srcW, srcH int, t *Texture) {
 		j := bufferRowOffset
 		for tx := x1; tx < x2; tx++ {
 			c := Color(*(*uint32)(unsafe.Add(tptr, i)))
+			dptr := unsafe.Add(e.backBufPtr, j)
 			if c.A() != 255 {
-				c = c.Blend(*(*Color)(unsafe.Pointer(j)))
+				c = c.Blend(*(*Color)(dptr))
 			}
-			*(*Color)(unsafe.Pointer(j)) = c
+			*(*Color)(dptr) = c
 			i += 4
-			j = unsafe.Add(j, 4)
+			j += 4
 		}
 		textureRowOffset += t.W * 4
-		bufferRowOffset = unsafe.Add(bufferRowOffset, e.width*4)
+		bufferRowOffset += e.width * 4
 	}
 }
 
@@ -287,13 +288,13 @@ func (e *xcbDriver) HLine(x1, x2, y int, c Color) {
 		return
 	}
 
-	offset := e.idxPtr(x1, y)
+	ptr := e.idxPtr(x1, y)
 	for i := 0; i <= x2-x1; i++ {
 		if c.A() != 255 {
-			c = c.Blend(*(*Color)(offset))
+			c = c.Blend(*(*Color)(ptr))
 		}
-		*(*Color)(offset) = c
-		offset = unsafe.Add(offset, 4)
+		*(*Color)(ptr) = c
+		ptr = unsafe.Add(ptr, 4)
 	}
 }
 
@@ -311,13 +312,13 @@ func (e *xcbDriver) VLine(x, y1, y2 int, c Color) {
 		return
 	}
 
-	offset := e.idxPtr(x, y1)
+	ptr := e.idxPtr(x, y1)
 	for i := 0; i <= y2-y1; i++ {
 		if c.A() != 255 {
-			c = c.Blend(*(*Color)(unsafe.Pointer(offset)))
+			c = c.Blend(*(*Color)(unsafe.Pointer(ptr)))
 		}
-		*(*Color)(unsafe.Pointer(offset)) = c
-		offset = unsafe.Add(offset, e.width*4)
+		*(*Color)(ptr) = c
+		ptr = unsafe.Add(ptr, e.width*4)
 	}
 }
 
