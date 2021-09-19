@@ -1,10 +1,11 @@
+//go:build linux
 // +build linux
 
 package gfx
 
 import (
-	"github.com/BurntSushi/xgb"
-	"github.com/BurntSushi/xgb/xproto"
+	"github.com/jezek/xgb"
+	"github.com/jezek/xgb/xproto"
 )
 
 // BigRequest extentions

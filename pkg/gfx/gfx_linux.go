@@ -8,9 +8,9 @@ import (
 	"sync/atomic"
 	"unsafe"
 
-	"github.com/BurntSushi/xgb"
-	"github.com/BurntSushi/xgb/bigreq"
-	"github.com/BurntSushi/xgb/xproto"
+	"github.com/jezek/xgb"
+	"github.com/jezek/xgb/bigreq"
+	"github.com/jezek/xgb/xproto"
 )
 
 func init() {
@@ -421,9 +421,11 @@ func (e *xcbDriver) Render(delta float64) {
 func (e *xcbDriver) StartEventLoop() {
 	for {
 		ev, xerr := e.conn.WaitForEvent()
-		if ev == nil && xerr != nil {
-			fmt.Println(xerr)
-			return
+		if ev == nil && xerr == nil {
+			break
+		}
+		if xerr != nil {
+			fmt.Printf("Error: %v\n", xerr)
 		}
 		if ev != nil {
 			switch evt := ev.(type) {
@@ -464,10 +466,8 @@ func (e *xcbDriver) StartEventLoop() {
 				fmt.Printf("Event: %v\n", evt)
 			}
 		}
-		if xerr != nil {
-			fmt.Printf("Error: %v\n", xerr)
-		}
 	}
+	shutdown()
 }
 
 func (e *xcbDriver) scaleImage() {
