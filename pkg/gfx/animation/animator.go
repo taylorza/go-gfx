@@ -1,5 +1,6 @@
 package animation
 
+// Animator drives an animation
 type Animator struct {
 	name    string
 	a       *Animation
@@ -9,6 +10,7 @@ type Animator struct {
 	playing bool
 }
 
+// NewAnimator creates a named animator for an animation
 func NewAnimator(name string, a *Animation) *Animator {
 	animator := &Animator{
 		name: name,
@@ -23,6 +25,7 @@ func NewAnimator(name string, a *Animation) *Animator {
 	return animator
 }
 
+// Update must be called every render frame to update the animation state based on the setup of the attached animation
 func (p *Animator) Update(delta float64) {
 	if !p.playing || len(p.a.frames) < 2 {
 		return
@@ -47,14 +50,17 @@ func (p *Animator) Update(delta float64) {
 	}
 }
 
+// Play starts the animation playing
 func (p *Animator) Play() {
 	p.playing = true
 }
 
+// Stop the animation
 func (p *Animator) Stop() {
 	p.playing = false
 }
 
+// Restart the animation from the start frame and direction
 func (p *Animator) Restart() {
 	p.elapsed = 0
 	if p.a.reverse {
@@ -66,6 +72,7 @@ func (p *Animator) Restart() {
 	}
 }
 
+// CurrentFrame returns the coordinates of the image to show for the current animation state
 func (p *Animator) CurrentFrame() (x, y, w, h int) {
 	return p.a.frames[p.frame].x, p.a.frames[p.frame].y, p.a.frames[p.frame].w, p.a.frames[p.frame].h
 }

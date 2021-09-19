@@ -5,6 +5,7 @@ import (
 	"github.com/taylorza/go-gfx/pkg/gfx/animation"
 )
 
+// Sprite represents a sprite
 type Sprite struct {
 	X, Y            float64
 	ox, oy          float64
@@ -13,8 +14,10 @@ type Sprite struct {
 	currentAnimator *animation.Animator
 }
 
+// Option is the signature of a configuration function for a Sprite
 type Option func(s *Sprite)
 
+// New creates a new sprite. If there are no animations the entire texture is used to render the sprite
 func New(t *gfx.Texture, opts ...Option) *Sprite {
 	s := &Sprite{
 		t: t,
@@ -31,6 +34,7 @@ func New(t *gfx.Texture, opts ...Option) *Sprite {
 	return s
 }
 
+// Animation is an Option function that adds a named animation to the sprite
 func Animation(name string, a *animation.Animation) Option {
 	return func(s *Sprite) {
 		if s.animations == nil {
@@ -44,6 +48,7 @@ func Animation(name string, a *animation.Animation) Option {
 	}
 }
 
+// Origin is an Option function that sets the sprites origin
 func Origin(x, y int) Option {
 	return func(s *Sprite) {
 		s.ox = float64(x)
@@ -51,6 +56,7 @@ func Origin(x, y int) Option {
 	}
 }
 
+// Update will updates the sprite, including the currently active animation
 func (s *Sprite) Update(delta float64) {
 	if len(s.animations) == 0 {
 		gfx.DrawTexture(s.X-s.ox, s.Y-s.oy, s.t)
@@ -62,6 +68,7 @@ func (s *Sprite) Update(delta float64) {
 	}
 }
 
+// PlayAnimation selects the animation to play for the sprite
 func (s *Sprite) PlayAnimation(name string, restart bool) {
 	if s.animations != nil {
 		if p, ok := s.animations[name]; ok {
@@ -77,12 +84,14 @@ func (s *Sprite) PlayAnimation(name string, restart bool) {
 	}
 }
 
+// StopAnimation stops the sprites animation
 func (s *Sprite) StopAnimation() {
 	if s.currentAnimator != nil {
 		s.currentAnimator.Stop()
 	}
 }
 
+// ResetAnimation resets the animation to the first frame
 func (s *Sprite) ResetAnimation() {
 	if s.currentAnimator != nil {
 		s.currentAnimator.Restart()
