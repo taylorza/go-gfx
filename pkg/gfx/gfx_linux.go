@@ -152,7 +152,7 @@ func (e *xcbDriver) SetPixel(x, y int, c Color) {
 	if c.A() != 255 {
 		c = c.Blend(*(*Color)(unsafe.Pointer(ptr)))
 	}
-	*(*Color)(unsafe.Pointer(ptr)) = c
+	*(*Color)(ptr) = c
 }
 
 func (e *xcbDriver) FillRect(x, y, w, h int, c Color) {

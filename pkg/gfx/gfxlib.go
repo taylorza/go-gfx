@@ -165,32 +165,22 @@ func DrawLine(x1, y1, x2, y2 float64, c Color) {
 	iy1 := int(y1 + 0.5)
 	ix2 := int(x2 + 0.5)
 	iy2 := int(y2 + 0.5)
-	dy := iabs(iy2 - iy1)
-	if dy == 0 {
-		drawHLine(ix1, ix2, iy1, c)
-		return
-	}
-
+	dy := -iabs(iy2 - iy1)
 	dx := iabs(ix2 - ix1)
-	if dx == 0 {
-		drawVLine(ix1, iy1, iy2, c)
-		return
-	}
-
 	sx := 1
-	if x2 < x1 {
+	if ix2 < ix1 {
 		sx = -1
 	}
-
 	sy := 1
-	if y2 < y1 {
+	if iy2 < iy1 {
 		sy = -1
 	}
-	dy = -dy
+
 	err := dx + dy
-	for ix1 != ix2 && iy1 != iy2 {
+
+	for ix1 != ix2 || iy1 != iy2 {
 		driver.SetPixel(ix1, iy1, c)
-		e2 := 2 * err
+		e2 := err + err
 		if e2 >= dy {
 			err += dy
 			ix1 += sx
