@@ -50,7 +50,7 @@ func DrawTexture(x, y float64, t *Texture) {
 	if t == nil {
 		panic("texture cannot be nil")
 	}
-	driver.DrawTexture(int(x), int(y), 0, 0, t.W, t.H, t)
+	driver.DrawTexture(int(x+0.5), int(y+0.5), 0, 0, t.W, t.H, t)
 }
 
 // DrawTextureRect extracts a sub-rectangle from a texture and draws it to the screen.
@@ -58,7 +58,7 @@ func DrawTextureRect(x, y float64, srcX, srcY, srcW, srcH int, t *Texture) {
 	if t == nil {
 		panic("texture cannot be nil")
 	}
-	driver.DrawTexture(int(x), int(y), srcX, srcY, srcW, srcH, t)
+	driver.DrawTexture(int(x+0.5), int(y+0.5), srcX, srcY, srcW, srcH, t)
 }
 
 func fmin4(a, b, c, d float64) float64 {
@@ -75,8 +75,8 @@ func DrawTextureRotate(x, y float64, srcX, srcY, srcW, srcH, cx, cy int, sx, sy,
 		panic("texture cannot be nil")
 	}
 
-	ix := int(x)
-	iy := int(y)
+	ix := int(x + 0.5)
+	iy := int(y + 0.5)
 
 	if x > width || y > height || ix+srcW < 0 || iy+srcH < 0 || srcX >= t.W || srcY >= t.H {
 		return
@@ -161,10 +161,10 @@ func iabs(x int) int {
 
 // DrawLine draws a line
 func DrawLine(x1, y1, x2, y2 float64, c Color) {
-	ix1 := int(x1)
-	iy1 := int(y1)
-	ix2 := int(x2)
-	iy2 := int(y2)
+	ix1 := int(x1 + 0.5)
+	iy1 := int(y1 + 0.5)
+	ix2 := int(x2 + 0.5)
+	iy2 := int(y2 + 0.5)
 	dy := iabs(iy2 - iy1)
 	if dy == 0 {
 		drawHLine(ix1, ix2, iy1, c)
@@ -204,10 +204,10 @@ func DrawLine(x1, y1, x2, y2 float64, c Color) {
 
 // DrawRect draws a rectangle
 func DrawRect(x, y, w, h float64, c Color) {
-	ix := int(x)
-	iy := int(y)
-	iw := int(w)
-	ih := int(h)
+	ix := int(x + 0.5)
+	iy := int(y + 0.5)
+	iw := int(w + 0.5)
+	ih := int(h + 0.5)
 
 	drawHLine(ix, ix+iw, iy, c)
 	drawHLine(ix, ix+iw, iy+ih, c)
@@ -217,10 +217,10 @@ func DrawRect(x, y, w, h float64, c Color) {
 
 // FillRect draws a filled rectangle
 func FillRect(x, y, w, h float64, c Color) {
-	ix := int(x)
-	iy := int(y)
-	iw := int(w)
-	ih := int(h)
+	ix := int(x + 0.5)
+	iy := int(y + 0.5)
+	iw := int(w + 0.5)
+	ih := int(h + 0.5)
 	driver.FillRect(ix, iy, iw, ih, c)
 	// for i := 0; i <= ih; i++ {
 	// 	drawHLine(ix, ix+iw, iy+i, c)
@@ -233,9 +233,9 @@ func DrawCircle(x, y, r float64, c Color) {
 		return
 	}
 
-	ix := int(x)
-	iy := int(y)
-	ir := int(r)
+	ix := int(x + 0.5)
+	iy := int(y + 0.5)
+	ir := int(r + 0.5)
 
 	ex := 0
 	ey := ir
@@ -265,9 +265,9 @@ func FillCircle(x, y, r float64, c Color) {
 		return
 	}
 
-	ix := int(x)
-	iy := int(y)
-	ir := int(r)
+	ix := int(x + 0.5)
+	iy := int(y + 0.5)
+	ir := int(r + 0.5)
 
 	ex := 0
 	ey := ir
@@ -289,15 +289,15 @@ func FillCircle(x, y, r float64, c Color) {
 
 // DrawEllipse draws an ellipse
 func DrawEllipse(x, y, rx, ry float64, c Color) {
-	a2 := int(rx * rx)
-	b2 := int(ry * ry)
-	fa2 := int(4 * a2)
-	fb2 := int(4 * b2)
+	a2 := int((rx * rx) + 0.5)
+	b2 := int((ry * ry) + 0.5)
+	fa2 := 4 * a2
+	fb2 := 4 * b2
 
-	ix := int(x)
-	iy := int(y)
-	irx := int(rx)
-	iry := int(ry)
+	ix := int(x + 0.5)
+	iy := int(y + 0.5)
+	irx := int(rx + 0.5)
+	iry := int(ry + 0.5)
 
 	ex := 0
 	ey := iry
@@ -334,15 +334,15 @@ func DrawEllipse(x, y, rx, ry float64, c Color) {
 
 // FillEllipse draws a filled ellipse
 func FillEllipse(x, y, rx, ry float64, c Color) {
-	a2 := int(rx * rx)
-	b2 := int(ry * ry)
-	fa2 := int(4 * a2)
-	fb2 := int(4 * b2)
+	a2 := int((rx * rx) + 0.5)
+	b2 := int((ry * ry) + 0.5)
+	fa2 := 4 * a2
+	fb2 := 4 * b2
 
-	ix := int(x)
-	iy := int(y)
-	irx := int(rx)
-	iry := int(ry)
+	ix := int(x + 0.5)
+	iy := int(y + 0.5)
+	irx := int(rx + 0.5)
+	iry := int(ry + 0.5)
 
 	ex := 0
 	ey := iry
@@ -375,8 +375,8 @@ func FillEllipse(x, y, rx, ry float64, c Color) {
 
 // DrawChar renders a character using the specified font. A Transparent color can be used for the background.
 func DrawChar(font *Font, x, y float64, ch byte, bk, fg Color) {
-	ix := int(x)
-	iy := int(y)
+	ix := int(x + 0.5)
+	iy := int(y + 0.5)
 
 	if ch < font.FirstChar {
 		ch = font.FirstChar
@@ -401,8 +401,8 @@ func DrawChar(font *Font, x, y float64, ch byte, bk, fg Color) {
 
 // DrawString renders a string using the specified font. The background color can be Transparent
 func DrawString(font *Font, x, y float64, str string, bk, fg Color) {
-	ix := int(x)
-	iy := int(y)
+	ix := int(x + 0.5)
+	iy := int(y + 0.5)
 	fw := float64(font.W)
 	sw := width
 	if x > width || y > height || ix+len(str)*font.W < 0 || iy+font.H < 0 {

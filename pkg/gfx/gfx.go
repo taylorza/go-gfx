@@ -89,7 +89,7 @@ func Clear(c Color) {
 
 // SetPixel draws a pixel at the specified coordinates using the passed color
 func SetPixel(x, y float64, c Color) {
-	driver.SetPixel(int(x), int(y), c)
+	driver.SetPixel(int(x+0.5), int(y+0.5), c)
 }
 
 // KeyPressed returns true if the passed key is currently pressed. KeyPressed can also be used to check the state of the mouse buttons.

@@ -260,12 +260,12 @@ func (e *xcbDriver) DrawTexture(x, y, srcX, srcY, srcW, srcH int, t *Texture) {
 		i := textureRowOffset
 		j := bufferRowOffset
 		for tx := x1; tx < x2; tx++ {
-			c := Color(*(*uint32)(unsafe.Add(tptr, i)))
-			dptr := unsafe.Add(e.backBufPtr, j)
-			if c.A() != 255 {
-				c = c.Blend(*(*Color)(dptr))
+			tc := Color(*(*uint32)(unsafe.Add(tptr, i)))
+			pbc := (*Color)(unsafe.Add(e.backBufPtr, j))
+			if tc.A() != 255 {
+				tc = tc.Blend(*pbc)
 			}
-			*(*Color)(dptr) = c
+			*pbc = tc
 			i += 4
 			j += 4
 		}
