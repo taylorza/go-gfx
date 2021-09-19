@@ -1,4 +1,4 @@
-# go-gfx [![Go-Linux](https://github.com/taylorza/go-gfx/actions/workflows/linux-build.yml/badge.svg?branch=master)](https://github.com/taylorza/go-gfx/actions/workflows/linux-build.yml)[Go-Windows](https://github.com/taylorza/go-gfx/actions/workflows/windows-build.yml/badge.svg)](https://github.com/taylorza/go-gfx/actions/workflows/windows-build.yml)[![Go Reference](https://pkg.go.dev/badge/github.com/taylorza/go-gfx.svg)](https://pkg.go.dev/github.com/taylorza/go-gfx)[!
+# go-gfx [![Go-Linux](https://github.com/taylorza/go-gfx/actions/workflows/linux-build.yml/badge.svg?branch=master)](https://github.com/taylorza/go-gfx/actions/workflows/linux-build.yml)[![Go-Windows](https://github.com/taylorza/go-gfx/actions/workflows/windows-build.yml/badge.svg)](https://github.com/taylorza/go-gfx/actions/workflows/windows-build.yml)[![Go Reference](https://pkg.go.dev/badge/github.com/taylorza/go-gfx.svg)](https://pkg.go.dev/github.com/taylorza/go-gfx)
 
 Package **gfx** provides a simple native Go 2d graphics library for Windows and Linux.
 
