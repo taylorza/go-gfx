@@ -40,7 +40,7 @@ func (app *myapp) Update(delta float64) {
 }
 
 func main() {
-	if gfx.Init("Mouse Demo", 0, 0, 640, 480, 1, 1) {
+	if gfx.Init("Mouse Demo", 0, 0, 640, 480, 2, 2) {
 		gfx.Run(&myapp{})
 	}
 }

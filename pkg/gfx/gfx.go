@@ -6,13 +6,20 @@ import (
 	"time"
 )
 
+const (
+	defaultTargetFrameRate = 60
+)
+
 var (
 	width  float64
 	height float64
 	scaleX float64
 	scaleY float64
 
-	fps int
+	fps             int
+	isFixed         bool
+	targetFrameRate int
+	targetFrameTime float64
 )
 
 // Application defines the interface that must be implemented by an application using the graphics interface.
@@ -42,6 +49,9 @@ func Init(title string, x, y, w, h, xscale, yscale int) bool {
 	height = float64(h)
 	scaleX = float64(xscale)
 	scaleY = float64(yscale)
+
+	isFixed = false
+	SetTargetFrameRate(defaultTargetFrameRate)
 
 	iomgr = &ioManager{}
 	driver.Init()
@@ -80,6 +90,22 @@ func Height() float64 {
 // Fps returns the number of update frames executed in the last second
 func Fps() int {
 	return fps
+}
+
+// EnableFixedFrameRate enable or disable fixed frame rate
+func EnableFixedFrameRate(state bool) {
+	isFixed = state
+}
+
+// SetTargetFrameRate sets the desired target frame rate when fixed frame rate is enabled
+func SetTargetFrameRate(fps int) {
+	targetFrameRate = fps
+	targetFrameTime = 1.0 / float64(fps)
+}
+
+// TargetFrameRate gets the current target frame rate
+func TargetFrameRate() int {
+	return targetFrameRate
 }
 
 // Clear clears the graphics surface using the specified color
@@ -245,26 +271,28 @@ var (
 
 func run(app Application) {
 	running = true
-	lastFrame := time.Now()
+	lastUpdate := time.Now()
+	lastRender := time.Now()
 	frameTimer := 0.0
-	frameCount := 0
 
 	for running {
 		startUpdate := time.Now()
-		elapsedTime := startUpdate.Sub(lastFrame).Seconds()
-		lastFrame = startUpdate
+		elapsedTime := startUpdate.Sub(lastUpdate).Seconds()
+		lastUpdate = startUpdate
+		frameTimer += elapsedTime
 
 		driver.Update(elapsedTime)
 		iomgr.update(elapsedTime)
-		app.Update(elapsedTime)
-		driver.Render(elapsedTime)
 
-		frameTimer += elapsedTime
-		frameCount++
-		if frameTimer >= 1 {
-			fps = frameCount
-			frameTimer--
-			frameCount = 0
+		if !isFixed || frameTimer >= targetFrameTime {
+			startRender := time.Now()
+			delta := startRender.Sub(lastRender).Seconds()
+			lastRender = startRender
+
+			app.Update(delta)
+			driver.Render(delta)
+			fps = (int)(1.0/delta + 0.5)
+			frameTimer -= targetFrameTime
 		}
 	}
 }
