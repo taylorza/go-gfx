@@ -35,6 +35,11 @@ func New(t *gfx.Texture, opts ...Option) *Animation {
 }
 
 // FrameSlicer is an Option function that slices the texture into individual frames for the animation
+// Frames are sequenced left to right top to bottom
+// offsetX, offsetY - starting point for slicing frames
+// frameWidth, frameHeight - size of each frame
+// colCount - number of horizontal frames to extract for this animation
+// rowCount - number of vertical frames to extract for the animation
 func FrameSlicer(offsetX, offsetY, frameWidth, frameHeight, colCount, rowCount int) Option {
 	return func(a *Animation) {
 		for row := 0; row < rowCount; row++ {
